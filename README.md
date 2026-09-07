@@ -29,11 +29,13 @@ Deploy the generated `dist/` directory to any static host. The camera is stored 
 - Real terrain from Mapzen / AWS Terrarium elevation tiles, with adjustable exaggeration.
 - Day, sunset and night palettes, changed in place without reloading map data.
 - 27 searchable, curated places and category filters.
-- An eight-stop guided fly-through: Charminar → Golconda → Hussain Sagar → Jubilee Hills → HITEC City → Financial District → Kokapet → Gandipet.
+- A ten-category guided tour follows the tab order, activating each category and automatically selecting and visiting its first listed place. Every category switch clears the search, selects its first listed place and flies there; manual category selection exits the tour.
 - Tour pause/resume, previous/next stops, and cancellation on manual map navigation.
 - In 3D, left-drag orbits and tilts around the map centre; right-drag, Shift + left-drag, or Space + left-drag pans. In 2D, left-drag also pans. Native touch gestures remain available.
 - Map settings (layer visibility, building/terrain exaggeration, terrain relief and lighting mode) are saved in browser localStorage and restored on reload.
 - Individual layer controls, building-height exaggeration, 2D/3D toggle, compass, zoom and reset.
+- Quiet [Cuelume](https://cuelume-site.pages.dev/) interaction sounds for place navigation, tour controls, panels, lighting, layers, sliders and sharing. The speaker button in the header toggles all cues and remembers the preference locally. Sounds start with interaction, with no background audio or hover sounds.
+- Ten rounded category tabs repeat in a seamless horizontal loop, starting with Heritage & culture. Swipe or scroll the strip to browse, press 1–9 for the first nine tabs and 0 for the tenth (shown as NUM badges), or use ← / → to cycle with wraparound. The selected tab stays in view; Home/End work within the tab strip. Up/down arrows select and fly to places in the active category, wrapping at either end. Search stays within the active category, and shortcuts leave text fields, sliders and modified keys alone. Reduced motion disables smooth scrolling.
 - Responsive mobile place picker, touch gestures, keyboard controls, reduced-motion support, shareable camera URLs, and loading/error states.
 
 ## Bounded city view

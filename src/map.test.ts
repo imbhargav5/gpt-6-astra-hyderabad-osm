@@ -50,15 +50,15 @@ describe("landmark navigation", () => {
     ]);
     expect(searchLandmarks("old city").length).toBeGreaterThan(1);
     expect(
-      searchLandmarks("", "Heritage & monuments").every(
-        (l) => l.category === "Heritage & monuments",
+      searchLandmarks("", "Heritage & culture").every(
+        (l) => l.category === "Heritage & culture",
       ),
     ).toBe(true);
     expect(searchLandmarks("not-a-landmark")).toEqual([]);
   });
   it("keeps tour stops unique and inside the navigable metropolitan bounds", () => {
-    expect(tourStops).toHaveLength(8);
-    expect(new Set(tourStops.map((l) => l.id)).size).toBe(8);
+    expect(tourStops).toHaveLength(10);
+    expect(new Set(tourStops.map((l) => l.id)).size).toBe(10);
     for (const l of landmarks) {
       expect(l.coordinates[0]).toBeGreaterThan(78.12);
       expect(l.coordinates[0]).toBeLessThan(78.75);

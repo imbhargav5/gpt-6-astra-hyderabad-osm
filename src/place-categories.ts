@@ -1,13 +1,11 @@
 /** Shared taxonomy for search, filters and place cards. */
 export const placeCategories = [
-  "Heritage & monuments",
+  "Heritage & culture",
   "Temples & worship",
   "Lakes & reservoirs",
-  "Parks & wildlife",
-  "Sports grounds",
+  "Parks, wildlife & sports",
   "Shopping malls",
   "Healthcare",
-  "Science & culture",
   "Tech & business",
   "Neighbourhoods",
   "Transport & aviation",

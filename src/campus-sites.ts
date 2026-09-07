@@ -72,7 +72,7 @@ export const campusPlaces: Landmark[] = [
     coordinates: [78.37651, 17.42906],
     zoom: 16.9,
     bearing: -20,
-    category: "Parks & wildlife",
+    category: "Parks, wildlife & sports",
     description:
       "The park at Biodiversity junction. Explore its mapped paths, planted areas and the surrounding flyovers.",
     aliases: ["biodiversity", "bio diversity"],

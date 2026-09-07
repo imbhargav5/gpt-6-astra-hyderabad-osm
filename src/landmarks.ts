@@ -1,5 +1,5 @@
 import { campusPlaces } from "./campus-sites";
-import type { Category } from "./place-categories";
+import { placeCategories, type Category } from "./place-categories";
 export type { Category } from "./place-categories";
 export interface Landmark {
   id: string;
@@ -28,7 +28,7 @@ export const landmarks: Landmark[] = [
     id: "charminar",
     name: "Charminar",
     area: "Old City",
-    category: "Heritage & monuments",
+    category: "Heritage & culture",
     coordinates: [78.47467, 17.36156],
     zoom: 17,
     bearing: 30,
@@ -39,7 +39,7 @@ export const landmarks: Landmark[] = [
     id: "golconda",
     name: "Golconda Fort",
     area: "Fort & granite hills",
-    category: "Heritage & monuments",
+    category: "Heritage & culture",
     coordinates: [78.4011, 17.3833],
     zoom: 15.6,
     bearing: -35,
@@ -105,7 +105,7 @@ export const landmarks: Landmark[] = [
     id: "buddha",
     name: "Buddha Statue",
     area: "Hussain Sagar island",
-    category: "Heritage & monuments",
+    category: "Heritage & culture",
     coordinates: [78.475004, 17.415568],
     zoom: 18.1,
     bearing: 0,
@@ -149,7 +149,7 @@ export const landmarks: Landmark[] = [
     id: "chowmahalla",
     name: "Chowmahalla Palace",
     area: "Khilwat · Old City",
-    category: "Heritage & monuments",
+    category: "Heritage & culture",
     coordinates: [78.4717, 17.3578],
     zoom: 17,
     bearing: 25,
@@ -171,7 +171,7 @@ export const landmarks: Landmark[] = [
     id: "falaknuma",
     name: "Falaknuma Palace",
     area: "Southern hilltop",
-    category: "Heritage & monuments",
+    category: "Heritage & culture",
     coordinates: [78.4675, 17.3319],
     zoom: 16.4,
     bearing: 15,
@@ -205,7 +205,7 @@ export const landmarks: Landmark[] = [
     id: "birla-planetarium",
     name: "B. M. Birla Planetarium",
     area: "Birla Science Centre · Adarsh Nagar",
-    category: "Science & culture",
+    category: "Heritage & culture",
     coordinates: [78.47072, 17.40332],
     zoom: 17.3,
     bearing: -25,
@@ -217,7 +217,7 @@ export const landmarks: Landmark[] = [
     id: "nehru-zoo",
     name: "Nehru Zoological Park",
     area: "Zoo Park · Bahadurpura",
-    category: "Parks & wildlife",
+    category: "Parks, wildlife & sports",
     coordinates: [78.44556, 17.35144],
     zoom: 15.2,
     bearing: 20,
@@ -289,7 +289,7 @@ export const landmarks: Landmark[] = [
     id: "secunderabad-clock-tower",
     name: "Secunderabad Clock Tower",
     area: "Clock Tower Park · Secunderabad",
-    category: "Heritage & monuments",
+    category: "Heritage & culture",
     coordinates: [78.498554, 17.440903],
     zoom: 17.5,
     bearing: -20,
@@ -301,7 +301,7 @@ export const landmarks: Landmark[] = [
     id: "parade-grounds",
     name: "Parade Grounds",
     area: "Cantonment · Secunderabad",
-    category: "Sports grounds",
+    category: "Parks, wildlife & sports",
     coordinates: [78.49294, 17.44488],
     zoom: 15.9,
     bearing: 15,
@@ -313,7 +313,7 @@ export const landmarks: Landmark[] = [
     id: "gymkhana-grounds",
     name: "Gymkhana Grounds",
     area: "Cricket grounds · Secunderabad",
-    category: "Sports grounds",
+    category: "Parks, wildlife & sports",
     coordinates: [78.49001, 17.44499],
     zoom: 16.5,
     bearing: -20,
@@ -335,16 +335,10 @@ export const landmarks: Landmark[] = [
   },
   ...campusPlaces,
 ];
-export const tourStops = [
-  "charminar",
-  "golconda",
-  "hussain-sagar",
-  "jubilee-hills",
-  "cyber-towers",
-  "financial-district",
-  "kokapet",
-  "gandipet",
-].map((id) => landmarks.find((l) => l.id === id)!);
+// Follow the visible category order and each category's place-list order.
+export const tourStops = placeCategories.map((category) =>
+  landmarks.find((place) => place.category === category)!,
+);
 export function searchLandmarks(query: string, category = "All places") {
   const q = query.trim().toLowerCase();
   return landmarks.filter(

@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "cuelume": "^0.2.2",
     "lucide-react": "^0.577.0",
     "maplibre-gl": "^5.20.0",
     "rbush": "^4.0.1",

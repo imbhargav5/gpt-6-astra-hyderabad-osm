@@ -1268,7 +1268,8 @@ input[type="checkbox"] {
     0 1px 12px var(--paper),
     0 0 4px var(--paper);
 }
-.topbar .info-button {
+.topbar .info-button,
+.topbar .sound-button {
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   border-radius: 6px;
   backdrop-filter: blur(10px);
@@ -1381,41 +1382,6 @@ input[type="checkbox"] {
   font-size: 8px;
 }
 
-.category-filter {
-  display: grid;
-  gap: 6px;
-  margin-top: 14px;
-  flex-shrink: 0;
-}
-.category-filter > span {
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.06em;
-}
-.category-filter select {
-  width: 100%;
-  min-height: 38px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.category-filter select:focus-visible {
-  outline: 2px solid #5d8d79;
-  outline-offset: 2px;
-}
-.category-filter option {
-  background: #f8f8f2;
-  color: #29443b;
-}
-.theme-night .category-filter option {
-  background: #243a32;
-  color: #e1e8dc;
-}
 .results-count {
   display: flex;
   align-items: center;
@@ -1434,4 +1400,147 @@ input[type="checkbox"] {
   color: inherit;
   font: inherit;
   padding: 5px 0 5px 8px;
+}
+
+.sound-button {
+  flex-shrink: 0;
+}
+
+/* Horizontal category tabs keep more room for the places below. */
+.category-picker {
+  flex-shrink: 0;
+  margin-top: 12px;
+}
+.category-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  font-size: 9px;
+  letter-spacing: 1.4px;
+}
+.category-heading small {
+  margin-left: 8px;
+  letter-spacing: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.category-heading > div {
+  display: flex;
+  gap: 4px;
+}
+.category-heading button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+}
+.category-tabs {
+  position: relative;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+  overflow-anchor: none;
+  overscroll-behavior-x: contain;
+}
+.category-tabs [role="tab"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 13px 8px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 11px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.category-tabs kbd {
+  display: grid;
+  place-items: center;
+  min-width: 37px;
+  padding: 0 5px;
+  height: 20px;
+  border-radius: 5px;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  font-family: inherit;
+  font-size: 10px;
+}
+.category-tabs small {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+.category-tabs [aria-selected="true"] {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  border-color: transparent;
+  color: var(--ink);
+}
+.category-tabs [aria-selected="true"] kbd {
+  background: transparent;
+}
+.category-tabs [role="tab"]:focus-visible,
+.category-heading button:focus-visible {
+  outline: 2px solid #83a68e;
+  outline-offset: 2px;
+}
+.category-heading button {
+  border-radius: 50%;
+}
+.category-heading button:active {
+  transform: scale(0.97);
+}
+.category-hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  margin: 7px 0 0;
+  font-size: 8px;
+  color: var(--muted);
+}
+.explore-panel {
+  overflow-y: auto;
+}
+.explore-panel .search-box {
+  flex-shrink: 0;
+}
+.explore-panel .place-list {
+  min-height: 120px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .category-tabs [role="tab"]:not([aria-selected="true"]):hover,
+  .category-heading button:hover {
+    background: color-mix(in srgb, var(--green) 10%, transparent);
+    color: var(--ink);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .category-tabs [role="tab"] {
+    transition: none;
+  }
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+.category-tab-cycle {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 7px;
+  padding-right: 7px;
 }
