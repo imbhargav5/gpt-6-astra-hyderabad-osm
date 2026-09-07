@@ -1,0 +1,198 @@
+{
+  "hussain-sagar": {
+    "file": "hussain-sagar.jpg",
+    "source": "https://www.tripadvisor.in/Attraction_Review-g297586-d320676-Reviews-Hussain_Sagar_Lake-Hyderabad_Hyderabad_District_Telangana.html",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRD13NXTQkRYLqUWE28xvlQ9d43ZOXkVvZ1EBjuU3ENkw&s=10"
+  },
+  "charminar": {
+    "file": "charminar.jpg",
+    "source": "https://en.wikipedia.org/wiki/Charminar",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQKwltC3Hnt3ajAJmz4__hrFCVfbSpmjDDU89VicVMHQ&s=10"
+  },
+  "golconda": {
+    "file": "golconda.jpg",
+    "source": "https://www.incredibleindia.gov.in/en/telangana/hyderabad/golconda-fort",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQGM9z4BwkhlfCLlK6wLNR041LK3CBPOjr5_PDomOqcyQ&s=10"
+  },
+  "durgam-cheruvu": {
+    "file": "durgam-cheruvu.jpg",
+    "source": "https://www.hyderabadtourism.travel/durgam-cheruvu-hyderabad",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiTaCY4u0unHPeI510eEKYX9k8dKxCigTz7rC1YIYgIQ&s=10"
+  },
+  "cyber-towers": {
+    "file": "cyber-towers.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Cyber_Towers_Madhapur_Hyderabad.jpg",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpuKBR6izys0rmsO_jZVJIYMlAYJe8WAP3KhZSE3WB-Q&s=10"
+  },
+  "financial-district": {
+    "file": "financial-district.jpg",
+    "source": "https://www.aninews.in/news/business/financial-district-in-hyderabad-emerges-as-indias-leading-epicentre-living-and-integrated-urban-ecosystem20250917151725/",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQArJbBIYF2ylYBFZDdAAOOcLezfDZ2i0pJebsJbRQxKg&s=10"
+  },
+  "kokapet": {
+    "file": "kokapet.jpg",
+    "source": "https://www.instagram.com/p/DAJBIp2I-Ft/",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRuqvtrAIHzIdQk5sCOuHCCOhDt1z2U2J6AJhQgKXSJ3w&s=10"
+  },
+  "gandipet": {
+    "file": "gandipet.jpg",
+    "source": "https://en.wikipedia.org/wiki/Osman_Sagar",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVz-OUay4F9hpHcgam9nXTOWLM14ltUSaxleGt55Z1TQ&s=10"
+  },
+  "buddha": {
+    "file": "buddha.jpg",
+    "source": "https://en.wikipedia.org/wiki/Buddha_Statue_of_Hyderabad",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDZy6bkoyTTbemt9Tl5u4sVZ8BWlW0bvXztGqdtArsxA&s=10"
+  },
+  "jubilee-hills": {
+    "file": "jubilee-hills.jpg",
+    "source": "https://en.wikipedia.org/wiki/Jubilee_Hills",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCnHnocfZBldnFWP6Rqx4ABQWRW56c744mH-lwrIaa2Q&s=10"
+  },
+  "t-hub": {
+    "file": "t-hub.jpg",
+    "source": "https://www.t-hub.co/about-us",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFj1E5wrkljlY4ajCehzCEA1u2NsORlVr5rJS-8btQFQ&s=10"
+  },
+  "secretariat": {
+    "file": "secretariat.jpg",
+    "source": "https://en.wikipedia.org/wiki/Telangana_Secretariat",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTx5mRq0s2RfDrls866T5IsF9A6LDwiiZ5bZihicixWfg&s=10"
+  },
+  "chowmahalla": {
+    "file": "chowmahalla.jpg",
+    "source": "https://en.wikipedia.org/wiki/Chowmahalla_Palace",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAEzB9CbYWA_APxvdpZrTktBeXpu8IfWXuLFAeqQK74A&s=10"
+  },
+  "mecca-masjid": {
+    "file": "mecca-masjid.jpg",
+    "source": "https://en.wikipedia.org/wiki/Makkah_Masjid,_Hyderabad",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSU9ASRUFvfXP99DiXvrcI-uni-YNXzQZWxShCz4VCUfg&s=10"
+  },
+  "falaknuma": {
+    "file": "falaknuma.jpg",
+    "source": "https://en.wikipedia.org/wiki/Falaknuma_Palace",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQHGulPjwhLP_EzcSOMxf48nSsDUBOtEbjeXxY17Q940w&s=10"
+  },
+  "airport": {
+    "file": "airport.jpg",
+    "source": "https://www.hyderabad.aero/",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQspc8ZAyTOSOSQEMvJKKPUSHP3WtLi6jWHDW0m3HqXgg&s=10"
+  },
+  "birla-mandir": {
+    "file": "birla-mandir.jpg",
+    "source": "https://en.wikipedia.org/wiki/Birla_Mandir,_Hyderabad",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsOSscalEuqar3DWMDnYKsY5vLza_6FuJBLZpaSK-ERQ&s=10"
+  },
+  "birla-planetarium": {
+    "file": "birla-planetarium.jpg",
+    "source": "https://timesofindia.indiatimes.com/travel/things-to-do/birla-planetarium/articleshow/60795300.cms",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWzXOyAXcNVLU3bHd4GG-Xx5uoIUQbmy6VfMfFZMV1Mg&s=10"
+  },
+  "nehru-zoo": {
+    "file": "nehru-zoo.jpg",
+    "source": "https://nzptsfd.telangana.gov.in/",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTm4nFdO875l7I0t4b72rOIjHhxY_VcNKVah0d55CrpdQ&s=10"
+  },
+  "durgam-bridge": {
+    "file": "durgam-bridge.jpg",
+    "source": "https://en.wikipedia.org/wiki/Durgam_Cheruvu_Bridge",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR62bqArRjz9bng3yCIsc3gG5Zn0AY48V_QWWAw-r_DBw&s=10"
+  },
+  "chilkur-balaji": {
+    "file": "chilkur-balaji.jpg",
+    "source": "https://temple.yatradham.org/temple/chilkur-balaji-temple",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTBu-pF0jPTFDllyrahfWn4TrHkYDVcoyuKgL_zymz3hA&s=10"
+  },
+  "jagannath-temple": {
+    "file": "jagannath-temple.jpg",
+    "source": "https://en.wikipedia.org/wiki/Jagannath_Temple,_Hyderabad",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxHeR6cYjteSsLO-U8ClnwGHP2Gh_Qr8Biw6w3vzA4RQ&s=10"
+  },
+  "secunderabad-gurdwara": {
+    "file": "secunderabad-gurdwara.jpg",
+    "source": "https://gurdwaras.com/gurdwara/gurdwara-sahib-secunderabad-23d8d6e0",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQalMOrz77QxFyH4uyyuCWs8Kr3DiTH7b4g5jJU5wD7UQ&s=10"
+  },
+  "secunderabad-clock-tower": {
+    "file": "secunderabad-clock-tower.jpg",
+    "source": "https://en.wikipedia.org/wiki/Secunderabad_Clock_Tower",
+    "downloadUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTttsKWtme26mX3hTTU0mjvNfvcSCf4-fOFzQYkhz4j-w&s=10"
+  },
+  "parade-grounds": {
+    "file": "parade-grounds.jpg",
+    "source": "https://en.wikipedia.org/wiki/Secunderabad",
+    "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/1/14/Paradegr.jpg"
+  },
+  "gymkhana-grounds": {
+    "file": "gymkhana-grounds.jpg",
+    "source": "https://telanganatoday.com/hyderabad-cricket-academy-to-resume-activities-soon-at-gymkhana-grounds",
+    "downloadUrl": "https://media.telanganatoday.com/wp-content/uploads/2023/05/hca.jpg"
+  },
+  "chanchalguda-jail": {
+    "file": "chanchalguda-jail.jpg",
+    "source": "https://www.thehansindia.com/amp/telangana/man-lands-behind-bars-for-thrashing-mother-family-members-748404",
+    "downloadUrl": "https://assets.thehansindia.com/h-upload/2022/06/13/1297503-chanchalguda-central-jail.jpg"
+  },
+  "gvk-one": {
+    "file": "gvk-one.jpg",
+    "source": "https://andhra.mallsmarket.com/malls/gvk-one-mall-hyderabad",
+    "downloadUrl": "https://andhra.mallsmarket.com/sites/default/files/photos/malls/GVKone-Hyderabad-1.jpg"
+  },
+  "lv-prasad": {
+    "file": "lv-prasad.jpg",
+    "source": "https://en.wikipedia.org/wiki/Banjara_Hills",
+    "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/L._V._Prasad_Eye_Institute%2C_Banjara_Hills%2C_Hyderabad%2C_Telangana%2C_India.jpg"
+  },
+  "gandhi-hospital": {
+    "file": "gandhi-hospital.jpg",
+    "source": "https://newsmeter.in/hyderabad/gandhi-hospital-to-resume-non-covid-services-681208",
+    "downloadUrl": "https://newsmeter.in/h-upload/2021/07/28/301891-new-project-2021-07-28t075757160.jpg"
+  },
+  "sarath-city": {
+    "file": "sarath-city.jpg",
+    "source": "https://www.siasat.com/two-malls-in-hyderabad-rank-among-indias-most-visited-3096232/",
+    "downloadUrl": "https://cdn.siasat.com/wp-content/uploads/2024/09/sarath-city-capital-mall-hyderabad.jpg"
+  },
+  "begumpet-airport": {
+    "file": "begumpet-airport.jpg",
+    "source": "https://telanganatoday.com/hyderabad-begumpet-airport-authorities-issue-notices-to-anna-nagar-residents-in-scb-over-high-rise-buildings",
+    "downloadUrl": "https://media.telanganatoday.com/wp-content/uploads/2025/09/Hyderabad-Begumpet-airport-authorities-issue-notices-to-Anna-Nagar-residents-in-SCB-over-high-rise-buildings.jpg"
+  },
+  "bdl": {
+    "file": "bdl.jpg",
+    "source": "https://www.thehansindia.com/news/cities/hyderabad/bdl-achieves-47-jump-in-turnover-745317",
+    "downloadUrl": "https://assets.thehansindia.com/h-upload/2022/05/27/1294674-bdl.jpg"
+  },
+  "hakimpet": {
+    "file": "hakimpet.jpg",
+    "source": "https://www.aerotime.aero/articles/indian-air-force-ejector-seat-hamiket",
+    "downloadUrl": "https://www.aerotime.aero/images/Indian-Air-Force-station-Hakimpet-1-1-1600x1000.jpg"
+  },
+  "tcs-adibatla": {
+    "file": "tcs-adibatla.jpg",
+    "source": "https://shapoorji.in/business-segments/commercial/it-ites/tcs-adibatla-it-sez-hyderabad-telangana/",
+    "downloadUrl": "https://shapoorji.in/wp-content/uploads/2020/10/adibatla-2-750x422.jpg"
+  },
+  "midhani-township": {
+    "file": "midhani-township.jpg",
+    "source": "https://school.careers360.com/schools/brahm-prakash-dav-school-midhani-township-hyderabad",
+    "downloadUrl": "https://cache.careers360.mobi/media/schools/social-media/media-gallery/16641/2023/4/28/School%20Bulinding.jpg",
+    "subject": "Brahm Prakash DAV School in MIDHANI Township"
+  },
+  "inorbit-mall": {
+    "file": "inorbit-mall.jpg",
+    "source": "https://www.rediff.com/business/slide-show/slide-show-1-indias-most-amazing-malls/20120409.htm",
+    "downloadUrl": "https://im.rediff.com/money/2012/apr/06mall7.jpg"
+  },
+  "biodiversity-park": {
+    "file": "biodiversity-park.jpg",
+    "source": "https://www.touristplaces.net.in/hyderabad-tg/bio-diversity-park/",
+    "downloadUrl": "https://www.touristplaces.net.in/images/pp/5/p106589.jpg"
+  },
+  "drdo": {
+    "file": "drdo.jpg",
+    "source": "https://psuwatch.com/defencewatch/drdl-develops-kiosk-for-covid-19-sample-collection",
+    "downloadUrl": "https://media.assettype.com/psuwatch/import/wp-content/uploads/2022/02/Webp.net-compress-image-1-1.jpg?auto=format%2Ccompress&enlarge=true&fit=max&h=900&w=1200"
+  }
+}
