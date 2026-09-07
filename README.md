@@ -98,7 +98,7 @@ The zoo has enhanced mapped footpaths, perimeter coping, building façades and a
 
 These are procedural artistic interpretations, not surveyed architectural reconstructions. Decorative heights, roof forms, sports markings and gateway details are illustrative; clock hands are fixed. Campus outlines and available paths come from OpenStreetMap ways [27937605 (zoo)](https://www.openstreetmap.org/way/27937605), [29252455 (Parade)](https://www.openstreetmap.org/way/29252455), [29252465 (Gymkhana)](https://www.openstreetmap.org/way/29252465), and [238281779 (jail)](https://www.openstreetmap.org/way/238281779), with nearby mapped sport areas. Data © OpenStreetMap contributors, ODbL; snapshot retrieved September 2026.
 
-`place-models.ts` shares one GPU buffer across models and draws nearby sites from zoom 13; building visibility, height exaggeration, terrain and lighting settings apply. `place-surfaces.ts` uses terrain-draped native layers. Mesh, coverage, replacement-containment and campus-boundary checks are in `place-detail.test.ts`.
+`place-models.ts` streams separate cached GPU buffers for nearby models from zoom 13; building visibility, height exaggeration, terrain and lighting settings apply. `place-surfaces.ts` uses terrain-draped native layers. Mesh, coverage, replacement-containment and campus-boundary checks are in `place-detail.test.ts`.
 
 ### Malls, hospitals and additional campuses
 
@@ -120,4 +120,16 @@ Source: OpenStreetMap © contributors, ODbL, September 2026; public OSM map extr
 
 #### Terrain-aware flyover rendering
 
-Flyovers use closed custom WebGL meshes rather than building extrusions. Road segments are sampled at intervals of at most 20 m; each mesh corner uses the displayed terrain elevation, so decks and supports share a consistent reference on slopes. Deck undersides and side faces are rendered, and pier tops meet their deck caps. The height multiplier is clamped to at least 1 for structural clearance. Nearby geometry (4.5 km around the camera) is rebuilt after navigation, terrain updates or setting changes; GPU buffers are reused and released with the layer. Solid geometry remains visible from zoom 12, including supports in wider views. Heights and pier spacing remain illustrative; this is not an engineering survey or a measured ramp profile.
+Flyovers use closed custom WebGL meshes rather than building extrusions. Road segments are sampled at intervals of at most 20 m; each mesh corner uses the displayed terrain elevation, so decks and supports share a consistent reference on slopes. Deck undersides and side faces are rendered, and pier tops meet their deck caps. The height multiplier is clamped to at least 1 for structural clearance. Nearby geographic chunks are generated in a worker after navigation, terrain updates or setting changes; unchanged GPU buffers are cached and released with the layer. Solid geometry remains visible from zoom 12, including supports in wider views. Heights and pier spacing remain illustrative; this is not an engineering survey or a measured ramp profile.
+
+## Streaming custom detail
+
+The base OSM and terrain sources continue to stream native tiles. Custom place meshes now generate on demand in a Web Worker when their sites intersect the visible geographic bounds, with a 20% prefetch margin (at least roughly 400 m to accommodate model extents). Recently visited models remain in a 24 MiB GPU cache. Model metadata no longer eagerly builds every mesh during module import.
+
+Flyover meshes are partitioned into 0.01° geographic cells (roughly 1 km). Only cells around the view are sampled and uploaded, one worker result at a time, outside the render loop. A 32 MiB cache retains recent cells and reuses geometry when its source polygons, heights and sampled terrain remain identical. Terrain queries yield every 500 vertices. The lifecycle GeoJSON source stays empty because only the custom layer consumes flyover geometry, avoiding a redundant citywide GeoJSON upload. The checked-in road snapshot and its initial polygon preparation remain local; this is runtime geometry streaming, not a new remote tile service.
+
+Both cache budgets apply to retained resources: visible resources are pinned even if a broad view exceeds the budget, preserving detail. Unpinned least-recently-used entries are released as needed. Workers and GPU resources are disposed when layers are removed; superseded flyover and façade results are discarded.
+
+Architectural façades also generate in the background from plain GeoJSON snapshots. Woodland stays restricted to the current view and retains its existing deterministic placement and detail budgets; generation now yields every 200 candidates and abandons interrupted views. It still samples MapLibre terrain on the main thread, rather than using a separate woodland worker. Existing zoom thresholds, materials, terrain integration and geometry are retained.
+
+Validation: `npm test` covers cache eviction/pinning, lazy generation, worker cleanup, worker-safe GeoJSON and projection parity, alongside the existing map and geometry tests. `npm run build` checks TypeScript and the production worker bundle. Browser diagnostics on the map container include `data-active-models`, `data-model-cache-bytes`, and `data-flyover-chunks` for inspecting the active view and retained resources.

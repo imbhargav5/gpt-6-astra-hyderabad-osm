@@ -66,221 +66,267 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
   let vertices = 0,
     dirty = true,
     signature = "";
+  let removed = false,
+    building = false,
+    revision = 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const markDirty = () => {
+    revision++;
     dirty = true;
+    queueRebuild();
   };
   const sourceChanged = (e: MapSourceDataEvent) => {
     if (e.isSourceLoaded && ["osm", "terrain"].includes(e.sourceId))
-      dirty = true;
+      markDirty();
   };
-  function rebuild() {
+  function queueRebuild() {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = undefined;
+      void rebuild();
+    }, 160);
+  }
+  async function rebuild() {
+    if (removed || building || map.isMoving()) return;
+    const current = revision;
     if (!dirty || !settings().visible || !map.getSource("osm")) return;
     dirty = false;
-    const s = settings(),
-      zoom = map.getZoom(),
-      stride = zoom >= 15 ? 1 : zoom >= 13 ? 2 : zoom >= 11 ? 4 : 8;
-    const lngMeters = 111320 * 0.954,
-      latMeters = 111320,
-      spacing = 24;
-    const extent = map.getBounds();
-    const west = Math.max(CITY_BOUNDS[0] + 0.004, extent.getWest()),
-      east = Math.min(CITY_BOUNDS[2] - 0.004, extent.getEast());
-    const south = Math.max(CITY_BOUNDS[1] + 0.004, extent.getSouth()),
-      north = Math.min(CITY_BOUNDS[3] - 0.004, extent.getNorth());
-    const greens = [
-      ...map.querySourceFeatures("osm", {
-        sourceLayer: "landcover",
-        filter: ["==", "class", "wood"],
-      }),
-    ]
-      .filter(
-        (f) =>
-          f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon",
-      )
-      .map((f) => indexShape(f.geometry as ForestShape));
-    map.getContainer().dataset.woodlandPolygons = String(greens.length);
-    const center = map.getCenter();
-    greens.sort(
-      (a, b) =>
-        Math.hypot(
-          (a.minX + a.maxX) / 2 - center.lng,
-          (a.minY + a.maxY) / 2 - center.lat,
-        ) -
-        Math.hypot(
-          (b.minX + b.maxX) / 2 - center.lng,
-          (b.minY + b.maxY) / 2 - center.lat,
-        ),
-    );
-    const exclusions = new RBush<Indexed>();
-    for (const sourceLayer of [
-      "water",
-      "building",
-      "transportation",
-      "aeroway",
-    ]) {
-      const features = map.querySourceFeatures("osm", { sourceLayer });
-      const boxes = features
-        .filter((f) =>
-          ["Polygon", "MultiPolygon", "LineString", "MultiLineString"].includes(
-            f.geometry.type,
-          ),
+    building = true;
+    try {
+      const s = settings(),
+        zoom = map.getZoom(),
+        stride = zoom >= 15 ? 1 : zoom >= 13 ? 2 : zoom >= 11 ? 4 : 8;
+      const lngMeters = 111320 * 0.954,
+        latMeters = 111320,
+        spacing = 24;
+      const extent = map.getBounds();
+      const west = Math.max(CITY_BOUNDS[0] + 0.004, extent.getWest()),
+        east = Math.min(CITY_BOUNDS[2] - 0.004, extent.getEast());
+      const south = Math.max(CITY_BOUNDS[1] + 0.004, extent.getSouth()),
+        north = Math.min(CITY_BOUNDS[3] - 0.004, extent.getNorth());
+      const greens = [
+        ...map.querySourceFeatures("osm", {
+          sourceLayer: "landcover",
+          filter: ["==", "class", "wood"],
+        }),
+      ]
+        .filter(
+          (f) =>
+            f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon",
         )
-        .map((f) => {
-          const item = indexShape(f.geometry as ForestShape);
-          const pad =
-            sourceLayer === "transportation" || sourceLayer === "aeroway"
-              ? 12 / 111320
-              : 0;
-          item.minX -= pad / 0.954;
-          item.maxX += pad / 0.954;
-          item.minY -= pad;
-          item.maxY += pad;
-          return item;
-        });
-      exclusions.load(boxes);
-    }
-    const positions: number[] = [];
-    const shadows: number[] = [];
-    let tint = 0;
-    const seen = new Set<string>();
-    let attempts = 0,
-      trees = 0;
-    function vertex(x: number, y: number, z: number, shade: number, trunk = 0) {
-      positions.push(x, y, z, shade, trunk, tint);
-    }
-    outer: for (const green of greens) {
-      const minX =
-          Math.ceil(
-            (Math.max(green.minX, west) * lngMeters) / spacing / stride,
-          ) * stride,
-        maxX = Math.floor((Math.min(green.maxX, east) * lngMeters) / spacing);
-      const minY =
-          Math.ceil(
-            (Math.max(green.minY, south) * latMeters) / spacing / stride,
-          ) * stride,
-        maxY = Math.floor((Math.min(green.maxY, north) * latMeters) / spacing);
-      for (let x = minX; x <= maxX; x += stride)
-        for (let y = minY; y <= maxY; y += stride) {
-          if (++attempts > 120000 || trees >= 8000) break outer;
-          const key = `${x}:${y}`;
-          if (seen.has(key)) continue;
-          const random = seededCell(x, y);
-          const patch = patchNoise(x / (10 * stride), y / (10 * stride));
-          if (random < 0.08 + patch * 0.52) continue;
-          const lng =
-              ((x + (0.15 + random * 0.7) * stride) * spacing) / lngMeters,
-            lat =
-              ((y + (0.15 + seededCell(y, x) * 0.7) * stride) * spacing) /
-              latMeters;
-          if (lng < west || lng > east || lat < south || lat > north) continue;
-          if (!containsTree(lng, lat, green.shape)) continue;
-          if (
-            exclusions
-              .search({ minX: lng, minY: lat, maxX: lng, maxY: lat })
-              .some((item) => containsTree(lng, lat, item.shape))
+        .map((f) => indexShape(f.geometry as ForestShape));
+      map.getContainer().dataset.woodlandPolygons = String(greens.length);
+      const center = map.getCenter();
+      greens.sort(
+        (a, b) =>
+          Math.hypot(
+            (a.minX + a.maxX) / 2 - center.lng,
+            (a.minY + a.maxY) / 2 - center.lat,
+          ) -
+          Math.hypot(
+            (b.minX + b.maxX) / 2 - center.lng,
+            (b.minY + b.maxY) / 2 - center.lat,
+          ),
+      );
+      const exclusions = new RBush<Indexed>();
+      for (const sourceLayer of [
+        "water",
+        "building",
+        "transportation",
+        "aeroway",
+      ]) {
+        const features = map.querySourceFeatures("osm", { sourceLayer });
+        const boxes = features
+          .filter((f) =>
+            [
+              "Polygon",
+              "MultiPolygon",
+              "LineString",
+              "MultiLineString",
+            ].includes(f.geometry.type),
           )
-            continue;
-          seen.add(key);
-          const elevation = map.queryTerrainElevation([lng, lat]);
-          if (s.terrainOn && (elevation === null || elevation === 0)) continue;
-          const p = MercatorCoordinate.fromLngLat([lng, lat], elevation ?? 0);
-          const px = p.x - origin.x,
-            py = p.y - origin.y,
-            pz = p.z;
-          const scale = s.height * Math.min(stride, 3);
-          const height = (8 + seededCell(x + 19, y - 37) * 17) * scale * units,
-            radius = (2.5 + seededCell(x - 29, y + 13) * 3.4) * scale * units,
-            trunk = (1.4 + random) * scale * units;
-          tint = seededCell(x + 79, y - 53);
-          // Ground-following contact shadows anchor the canopy without a flat floating disc.
-          const groundRadius = radius / units;
-          const shadowPoints = Array.from({ length: 10 }, (_, i) => {
-            const angle = (i * Math.PI) / 5;
-            const dx = Math.cos(angle) * groundRadius,
-              dy = Math.sin(angle) * groundRadius;
-            const ll: [number, number] = [
-              lng + dx / lngMeters,
-              lat + dy / latMeters,
-            ];
-            const elevationAtPoint =
-              map.queryTerrainElevation(ll) ?? elevation ?? 0;
-            const merc = MercatorCoordinate.fromLngLat(
-              ll,
-              elevationAtPoint + 1.2,
-            );
-            return [merc.x - origin.x, merc.y - origin.y, merc.z];
+          .map((f) => {
+            const item = indexShape(f.geometry as ForestShape);
+            const pad =
+              sourceLayer === "transportation" || sourceLayer === "aeroway"
+                ? 12 / 111320
+                : 0;
+            item.minX -= pad / 0.954;
+            item.maxX += pad / 0.954;
+            item.minY -= pad;
+            item.maxY += pad;
+            return item;
           });
-          for (let i = 0; i < 10; i++) {
-            shadows.push(
-              px,
-              py,
-              pz + 1.2 * units,
-              0.22,
-              2,
-              0,
-              ...shadowPoints[i],
-              0,
-              2,
-              0,
-              ...shadowPoints[(i + 1) % 10],
-              0,
-              2,
-              0,
-            );
+        exclusions.load(boxes);
+      }
+      const positions: number[] = [];
+      const shadows: number[] = [];
+      let tint = 0;
+      const seen = new Set<string>();
+      let attempts = 0,
+        trees = 0;
+      function vertex(
+        x: number,
+        y: number,
+        z: number,
+        shade: number,
+        trunk = 0,
+      ) {
+        positions.push(x, y, z, shade, trunk, tint);
+      }
+      outer: for (const green of greens) {
+        const minX =
+            Math.ceil(
+              (Math.max(green.minX, west) * lngMeters) / spacing / stride,
+            ) * stride,
+          maxX = Math.floor((Math.min(green.maxX, east) * lngMeters) / spacing);
+        const minY =
+            Math.ceil(
+              (Math.max(green.minY, south) * latMeters) / spacing / stride,
+            ) * stride,
+          maxY = Math.floor(
+            (Math.min(green.maxY, north) * latMeters) / spacing,
+          );
+        for (let x = minX; x <= maxX; x += stride)
+          for (let y = minY; y <= maxY; y += stride) {
+            if (attempts > 0 && attempts % 200 === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 0));
+              if (removed || current !== revision || map.isMoving()) {
+                dirty = true;
+                return;
+              }
+            }
+            if (++attempts > 120000 || trees >= 8000) break outer;
+            const key = `${x}:${y}`;
+            if (seen.has(key)) continue;
+            const random = seededCell(x, y);
+            const patch = patchNoise(x / (10 * stride), y / (10 * stride));
+            if (random < 0.08 + patch * 0.52) continue;
+            const lng =
+                ((x + (0.15 + random * 0.7) * stride) * spacing) / lngMeters,
+              lat =
+                ((y + (0.15 + seededCell(y, x) * 0.7) * stride) * spacing) /
+                latMeters;
+            if (lng < west || lng > east || lat < south || lat > north)
+              continue;
+            if (!containsTree(lng, lat, green.shape)) continue;
+            if (
+              exclusions
+                .search({ minX: lng, minY: lat, maxX: lng, maxY: lat })
+                .some((item) => containsTree(lng, lat, item.shape))
+            )
+              continue;
+            seen.add(key);
+            const elevation = map.queryTerrainElevation([lng, lat]);
+            if (s.terrainOn && (elevation === null || elevation === 0))
+              continue;
+            const p = MercatorCoordinate.fromLngLat([lng, lat], elevation ?? 0);
+            const px = p.x - origin.x,
+              py = p.y - origin.y,
+              pz = p.z;
+            const scale = s.height * Math.min(stride, 3);
+            const height =
+                (8 + seededCell(x + 19, y - 37) * 17) * scale * units,
+              radius = (2.5 + seededCell(x - 29, y + 13) * 3.4) * scale * units,
+              trunk = (1.4 + random) * scale * units;
+            tint = seededCell(x + 79, y - 53);
+            // Ground-following contact shadows anchor the canopy without a flat floating disc.
+            const groundRadius = radius / units;
+            const shadowPoints = Array.from({ length: 10 }, (_, i) => {
+              const angle = (i * Math.PI) / 5;
+              const dx = Math.cos(angle) * groundRadius,
+                dy = Math.sin(angle) * groundRadius;
+              const ll: [number, number] = [
+                lng + dx / lngMeters,
+                lat + dy / latMeters,
+              ];
+              const elevationAtPoint =
+                map.queryTerrainElevation(ll) ?? elevation ?? 0;
+              const merc = MercatorCoordinate.fromLngLat(
+                ll,
+                elevationAtPoint + 1.2,
+              );
+              return [merc.x - origin.x, merc.y - origin.y, merc.z];
+            });
+            for (let i = 0; i < 10; i++) {
+              shadows.push(
+                px,
+                py,
+                pz + 1.2 * units,
+                0.22,
+                2,
+                0,
+                ...shadowPoints[i],
+                0,
+                2,
+                0,
+                ...shadowPoints[(i + 1) % 10],
+                0,
+                2,
+                0,
+              );
+            }
+            const phase = random * Math.PI * 2;
+            for (let side = 0; side < 6; side++) {
+              const a = phase + (side * Math.PI) / 3,
+                b = a + Math.PI / 3;
+              const shade = 0.72 + (0.34 * (Math.cos(a - 2.5) + 1)) / 2;
+              vertex(
+                px + Math.cos(phase) * radius * 0.12,
+                py + Math.sin(phase) * radius * 0.12,
+                pz + height,
+                shade,
+              );
+              vertex(
+                px + Math.cos(a) * radius,
+                py + Math.sin(a) * radius,
+                pz + trunk,
+                shade,
+              );
+              vertex(
+                px + Math.cos(b) * radius,
+                py + Math.sin(b) * radius,
+                pz + trunk,
+                shade,
+              );
+            }
+            const r = 0.5 * scale * units;
+            for (let side = 0; side < 4; side++) {
+              const a = (side * Math.PI) / 2,
+                b = a + Math.PI / 2;
+              const ax = px + Math.cos(a) * r,
+                ay = py + Math.sin(a) * r,
+                bx = px + Math.cos(b) * r,
+                by = py + Math.sin(b) * r;
+              vertex(ax, ay, pz, 1, 1);
+              vertex(bx, by, pz, 1, 1);
+              vertex(ax, ay, pz + trunk, 1, 1);
+              vertex(bx, by, pz, 1, 1);
+              vertex(bx, by, pz + trunk, 1, 1);
+              vertex(ax, ay, pz + trunk, 1, 1);
+            }
+            trees++;
           }
-          const phase = random * Math.PI * 2;
-          for (let side = 0; side < 6; side++) {
-            const a = phase + (side * Math.PI) / 3,
-              b = a + Math.PI / 3;
-            const shade = 0.72 + (0.34 * (Math.cos(a - 2.5) + 1)) / 2;
-            vertex(
-              px + Math.cos(phase) * radius * 0.12,
-              py + Math.sin(phase) * radius * 0.12,
-              pz + height,
-              shade,
-            );
-            vertex(
-              px + Math.cos(a) * radius,
-              py + Math.sin(a) * radius,
-              pz + trunk,
-              shade,
-            );
-            vertex(
-              px + Math.cos(b) * radius,
-              py + Math.sin(b) * radius,
-              pz + trunk,
-              shade,
-            );
-          }
-          const r = 0.5 * scale * units;
-          for (let side = 0; side < 4; side++) {
-            const a = (side * Math.PI) / 2,
-              b = a + Math.PI / 2;
-            const ax = px + Math.cos(a) * r,
-              ay = py + Math.sin(a) * r,
-              bx = px + Math.cos(b) * r,
-              by = py + Math.sin(b) * r;
-            vertex(ax, ay, pz, 1, 1);
-            vertex(bx, by, pz, 1, 1);
-            vertex(ax, ay, pz + trunk, 1, 1);
-            vertex(bx, by, pz, 1, 1);
-            vertex(bx, by, pz + trunk, 1, 1);
-            vertex(ax, ay, pz + trunk, 1, 1);
-          }
-          trees++;
-        }
+      }
+      if (removed || current !== revision) {
+        dirty = true;
+        return;
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([...shadows, ...positions]),
+        gl.STATIC_DRAW,
+      );
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      shadowVertices = shadows.length / 6;
+      vertices = positions.length / 6;
+      map.getContainer().dataset.treeCount = String(trees);
+      map.triggerRepaint();
+    } finally {
+      building = false;
+      if (dirty && !removed) queueRebuild();
     }
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([...shadows, ...positions]),
-      gl.STATIC_DRAW,
-    );
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    shadowVertices = shadows.length / 6;
-    vertices = positions.length / 6;
-    map.getContainer().dataset.treeCount = String(trees);
-    map.triggerRepaint();
   }
   return {
     id: "forest-trees",
@@ -355,13 +401,14 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
       map.on("moveend", markDirty);
       map.on("sourcedata", sourceChanged);
       map.on("idle", rebuild);
+      queueRebuild();
     },
     render(_context, args) {
       const s = settings();
       const next = `${s.height}/${s.terrain}/${s.terrainOn}/${s.visible}`;
       if (next !== signature) {
         signature = next;
-        dirty = true;
+        markDirty();
       }
       if (!s.visible || !vertices) return;
       const raw = args.defaultProjectionData.mainMatrix;
@@ -406,6 +453,9 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
       map.off("moveend", markDirty);
       map.off("sourcedata", sourceChanged);
       map.off("idle", rebuild);
+      removed = true;
+      revision++;
+      if (timer) clearTimeout(timer);
       gl.deleteBuffer(buffer);
       gl.deleteVertexArray(vao);
       gl.deleteProgram(program);

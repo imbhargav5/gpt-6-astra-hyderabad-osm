@@ -4,7 +4,7 @@ import {
   type FlyoverSettings,
 } from "./flyover-mesh";
 import type { FeatureCollection, Polygon, Position } from "geojson";
-import type { Map, GeoJSONSource, MapSourceDataEvent } from "maplibre-gl";
+import type { Map, MapSourceDataEvent } from "maplibre-gl";
 import roads from "./data/flyovers.json";
 import { CITY_BOUNDS } from "./city-slab";
 export interface ElevatedRoad {
@@ -178,7 +178,8 @@ export function installFlyovers(map: Map) {
   const data = buildFlyovers(elevatedRoads);
   map.addSource("flyovers", {
     type: "geojson",
-    data,
+    // The custom GPU layer owns geometry; this source is only a lifecycle marker.
+    data: { type: "FeatureCollection", features: [] },
     tolerance: 0,
     maxzoom: 18,
   });
@@ -251,7 +252,6 @@ export function watchFlyovers(map: Map) {
     if (next === signature) return;
     signature = next;
     const data = buildFlyovers([...elevatedRoads, ...extra]);
-    (map.getSource("flyovers") as GeoJSONSource).setData(data);
     updateFlyoverMesh(map, data);
     map.getContainer().dataset.flyoverRoads = String(
       elevatedRoads.length + extra.length,
