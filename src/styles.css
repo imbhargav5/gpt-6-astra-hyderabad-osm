@@ -1455,8 +1455,8 @@ input[type="checkbox"] {
   justify-content: center;
   flex: 0 0 auto;
   gap: 8px;
-  min-height: 38px;
-  padding: 8px 13px 8px 9px;
+  min-height: 34px;
+  padding: 6px 13px 6px 6px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: transparent;
@@ -1474,9 +1474,9 @@ input[type="checkbox"] {
   min-width: 37px;
   padding: 0 5px;
   height: 20px;
-  border-radius: 5px;
+  border-radius: 999px;
   white-space: nowrap;
-  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  background: rgb(15 32 24 / 10%);
   font-family: inherit;
   font-size: 10px;
 }
@@ -1489,9 +1489,6 @@ input[type="checkbox"] {
   background: color-mix(in srgb, var(--ink) 7%, transparent);
   border-color: transparent;
   color: var(--ink);
-}
-.category-tabs [aria-selected="true"] kbd {
-  background: transparent;
 }
 .category-tabs [role="tab"]:focus-visible,
 .category-heading button:focus-visible {
