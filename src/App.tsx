@@ -318,15 +318,26 @@ export default function App() {
         "The graphics context was interrupted. Reload the map to continue.",
       ),
     );
-    markers.current = landmarks.map((p, i) => {
+    markers.current = landmarks.map((p) => {
       const el = document.createElement("button");
       el.className = "landmark-marker";
+      el.type = "button";
+      el.setAttribute("aria-pressed", "false");
       el.setAttribute("aria-label", `Explore ${p.name}`);
       el.title = p.name;
       el.dataset.id = p.id;
-      el.textContent = String(i + 1).padStart(2, "0");
+      const label = document.createElement("span");
+      label.className = "landmark-label";
+      label.textContent = p.name;
+      const stem = document.createElement("span");
+      stem.className = "landmark-stem";
+      stem.setAttribute("aria-hidden", "true");
+      const dot = document.createElement("span");
+      dot.className = "landmark-dot";
+      dot.setAttribute("aria-hidden", "true");
+      el.append(label, stem, dot);
       el.addEventListener("click", () => selectRef.current(p));
-      return new maplibregl.Marker({ element: el, anchor: "bottom" })
+      return new maplibregl.Marker({ element: el, anchor: "center" })
         .setLngLat(p.coordinates)
         .addTo(m);
     });
@@ -378,7 +389,9 @@ export default function App() {
   useEffect(() => {
     markers.current.forEach((marker) => {
       const el = marker.getElement();
-      el.classList.toggle("selected", el.dataset.id === selected?.id);
+      const active = el.dataset.id === selected?.id;
+      el.classList.toggle("selected", active);
+      el.setAttribute("aria-pressed", String(active));
     });
   }, [selected]);
   function flyTo(place: Landmark) {
