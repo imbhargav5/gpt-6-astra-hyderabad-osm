@@ -51,7 +51,6 @@ import {
   Play,
   Plus,
   RotateCcw,
-  Search,
   Share2,
   SlidersHorizontal,
   Sun,
@@ -62,12 +61,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import {
-  landmarks,
-  searchLandmarks,
-  tourStops,
-  type Landmark,
-} from "./landmarks";
+import { landmarks, tourStops, type Landmark } from "./landmarks";
 import {
   buildingHeight,
   createStyle,
@@ -117,7 +111,6 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [mapError, setMapError] = useState("");
   const [theme, setTheme] = useState<Theme>(savedSettings.theme);
-  const [query, setQuery] = useState("");
   const [categoryIndex, setCategoryIndex] = useState(0);
   const category = placeCategories[categoryIndex];
   const [selected, setSelected] = useState<Landmark | null>(null);
@@ -237,6 +230,16 @@ export default function App() {
       new maplibregl.AttributionControl({ compact: true }),
       "bottom-right",
     );
+    // Start compact attribution closed, including when source credits arrive later.
+    // Keep the native info button and its accessible expand/collapse behavior.
+    const attribution = m
+      .getContainer()
+      .querySelector<HTMLDetailsElement>(".maplibregl-ctrl-attrib");
+    if (attribution) {
+      attribution.classList.add("maplibregl-compact");
+      attribution.classList.remove("maplibregl-compact-show");
+      attribution.open = false;
+    }
     m.addControl(
       new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }),
       "bottom-right",
@@ -397,7 +400,7 @@ export default function App() {
   function flyTo(place: Landmark) {
     playSound("page");
     setSelected(place);
-    setMobilePlaces(false);
+    if (window.innerWidth <= 900) setMobilePlaces(true);
     map.current?.flyTo({
       center: place.coordinates,
       zoom: place.zoom,
@@ -423,9 +426,7 @@ export default function App() {
   };
   function visitCategory(index: number) {
     setCategoryIndex(index);
-    setQuery("");
     flyTo(tourStops[index]);
-    setMobilePlaces(mobilePlaces);
     if (placeList.current) placeList.current.scrollTop = 0;
   }
   flightRef.current = () => visitCategory(tourIndex);
@@ -448,7 +449,7 @@ export default function App() {
       if (tourIndex < 0 || tourIndex === tourStops.length - 1) setTourIndex(0);
       setPlaying(true);
       setPanel(null);
-      setMobilePlaces(false);
+      if (window.innerWidth <= 900) setMobilePlaces(true);
     }
   }
   function stepTour(delta: number) {
@@ -517,7 +518,7 @@ export default function App() {
       setMapError("Copy the URL from your address bar to share this map view.");
     }
   }
-  const results = searchLandmarks(query, category);
+  const results = landmarks.filter((place) => place.category === category);
   useEffect(() => {
     function navigatePlaces(event: KeyboardEvent) {
       if (
@@ -635,27 +636,14 @@ export default function App() {
         className={`explore-panel ${mobilePlaces ? "mobile-open" : ""}`}
         aria-label="Explore places"
       >
-        <div className="eyebrow">
-          <span className="live-dot" /> THE DECCAN, IN DETAIL{" "}
-          <button
-            className="mobile-close icon-button"
-            aria-label="Close places"
-            data-cuelume-toggle="droplet"
-            onClick={() => setMobilePlaces(false)}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <h1>
-          One city.
-          <br />
-          <em>Many worlds.</em>
-        </h1>
-        <p className="intro">
-          From ancient granite to a new skyline.
-          <br />
-          Find your own way through Hyderabad.
-        </p>
+        <button
+          className="mobile-close icon-button"
+          aria-label="Close places"
+          data-cuelume-toggle="droplet"
+          onClick={() => setMobilePlaces(false)}
+        >
+          <X size={18} />
+        </button>
         <button className="tour-button" disabled={!ready} onClick={toggleTour}>
           {playing ? (
             <Pause size={17} fill="currentColor" />
@@ -663,30 +651,7 @@ export default function App() {
             <Play size={17} fill="currentColor" />
           )}
           <span>{playing ? "Pause the city tour" : "Take the city tour"}</span>
-          <span className="tour-duration">{tourStops.length} categories</span>
         </button>
-        <div className="section-title">
-          <span>EXPLORE THE CITY</span>
-          <span>{landmarks.length} places</span>
-        </div>
-        <label className="search-box">
-          <Search size={17} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find a landmark or neighbourhood"
-            aria-label="Search places"
-          />
-          {query && (
-            <button
-              data-cuelume-toggle="droplet"
-              aria-label="Clear search"
-              onClick={() => setQuery("")}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </label>
         <CategoryPicker
           active={categoryIndex}
           counts={
@@ -704,6 +669,71 @@ export default function App() {
             visitCategory(index);
           }}
         />
+        {selected && (
+          <section className="place-detail" aria-label="Selected place">
+            <div className="detail-number">
+              {String(landmarks.indexOf(selected) + 1).padStart(2, "0")}
+              <span>/ {landmarks.length}</span>
+            </div>
+            <div className="detail-content">
+              <span className="eyebrow">
+                {selected.category} <span>·</span> {selected.area}
+              </span>
+              <h2>{selected.name}</h2>
+              <p>{selected.description}</p>
+              {tourIndex >= 0 && (
+                <div className="tour-progress">
+                  <button
+                    aria-label="Previous tour stop"
+                    disabled={tourIndex === 0}
+                    onClick={() => stepTour(-1)}
+                  >
+                    <ChevronLeft size={17} />
+                  </button>
+                  <button
+                    onClick={toggleTour}
+                    aria-label={playing ? "Pause tour" : "Resume tour"}
+                  >
+                    {playing ? <Pause size={15} /> : <Play size={15} />}
+                  </button>
+                  <span>
+                    {tourIndex + 1} of {tourStops.length}{" "}
+                    <span className="muted">
+                      · {playing ? "Tour in progress" : "Tour paused"}
+                    </span>
+                  </span>
+                  <div className="tour-dots">
+                    {tourStops.map((p, i) => (
+                      <span
+                        key={p.id}
+                        className={i <= tourIndex ? "filled" : ""}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    aria-label="Next tour stop"
+                    disabled={tourIndex === tourStops.length - 1}
+                    onClick={() => stepTour(1)}
+                  >
+                    <ChevronRight size={17} />
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              className="icon-button close-detail"
+              aria-label="Close place details"
+              data-cuelume-toggle="droplet"
+              onClick={() => {
+                stopTour();
+                setSelected(null);
+                setTourIndex(-1);
+              }}
+            >
+              <X size={16} />
+            </button>
+          </section>
+        )}
         <div className="results-count" aria-live="polite">
           <span>{category}</span>
           <span>
@@ -737,20 +767,6 @@ export default function App() {
               <ArrowRight size={15} />
             </button>
           ))}
-          {results.length === 0 && (
-            <div className="empty-state">
-              <Search size={24} />
-              <strong>No places found</strong>
-              <p>Try another search or use → for the next category.</p>
-              <button
-                onClick={() => {
-                  setQuery("");
-                }}
-              >
-                Clear search
-              </button>
-            </div>
-          )}
         </div>
         <div className="sidebar-footer">
           <span className="tiny-compass">↗</span>
@@ -763,7 +779,7 @@ export default function App() {
         data-cuelume-toggle={mobilePlaces ? "droplet" : "bloom"}
         onClick={() => setMobilePlaces(!mobilePlaces)}
       >
-        <Search size={17} /> Explore Hyderabad
+        <MapPin size={17} /> Explore Hyderabad
       </button>
       <nav className="map-controls" aria-label="Map controls">
         <button
@@ -1078,9 +1094,9 @@ export default function App() {
                 In 3D, left-drag to orbit and tilt. Right-drag, Shift +
                 left-drag, or Space + left-drag to pan. In 2D, left-drag also
                 pans. Scroll or pinch to zoom; use two fingers to rotate and
-                tilt. Use 1–9 and 0 to jump between categories, ← / → to cycle
-                categories, and ↑ / ↓ to select places and fly to them. Map
-                keyboard controls support + / − and Shift + arrows. The URL
+                tilt. Use 1–9 and 0 to jump between categories, Shift + ↑ / ↓ to
+                cycle categories, and ↑ / ↓ to select places and fly to them.
+                Map keyboard controls support + / − and Shift + arrows. The URL
                 preserves your camera view.
               </p>
               <div className="source-badge">
@@ -1090,71 +1106,7 @@ export default function App() {
           )}
         </section>
       )}
-      {selected ? (
-        <section className="place-detail" aria-label="Selected place">
-          <div className="detail-number">
-            {String(landmarks.indexOf(selected) + 1).padStart(2, "0")}
-            <span>/ {landmarks.length}</span>
-          </div>
-          <div className="detail-content">
-            <span className="eyebrow">
-              {selected.category} <span>·</span> {selected.area}
-            </span>
-            <h2>{selected.name}</h2>
-            <p>{selected.description}</p>
-            {tourIndex >= 0 && (
-              <div className="tour-progress">
-                <button
-                  aria-label="Previous tour stop"
-                  disabled={tourIndex === 0}
-                  onClick={() => stepTour(-1)}
-                >
-                  <ChevronLeft size={17} />
-                </button>
-                <button
-                  onClick={toggleTour}
-                  aria-label={playing ? "Pause tour" : "Resume tour"}
-                >
-                  {playing ? <Pause size={15} /> : <Play size={15} />}
-                </button>
-                <span>
-                  {tourIndex + 1} of {tourStops.length}{" "}
-                  <span className="muted">
-                    · {playing ? "Tour in progress" : "Tour paused"}
-                  </span>
-                </span>
-                <div className="tour-dots">
-                  {tourStops.map((p, i) => (
-                    <span
-                      key={p.id}
-                      className={i <= tourIndex ? "filled" : ""}
-                    />
-                  ))}
-                </div>
-                <button
-                  aria-label="Next tour stop"
-                  disabled={tourIndex === tourStops.length - 1}
-                  onClick={() => stepTour(1)}
-                >
-                  <ChevronRight size={17} />
-                </button>
-              </div>
-            )}
-          </div>
-          <button
-            className="icon-button close-detail"
-            aria-label="Close place details"
-            data-cuelume-toggle="droplet"
-            onClick={() => {
-              stopTour();
-              setSelected(null);
-              setTourIndex(-1);
-            }}
-          >
-            <X size={16} />
-          </button>
-        </section>
-      ) : (
+      {!selected && (
         <div className="map-caption">
           <span className="caption-rule" />
           <div>
