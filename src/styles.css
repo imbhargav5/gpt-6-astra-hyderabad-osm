@@ -145,11 +145,6 @@ a {
   box-shadow: 0 1px 5px #30442b12;
   color: var(--ink);
 }
-.top-divider {
-  height: 25px;
-  width: 1px;
-  background: var(--line);
-}
 .icon-button {
   display: grid;
   place-items: center;
@@ -160,14 +155,6 @@ a {
 }
 .icon-button:hover {
   background: #82957817;
-}
-.share-button {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  background: none;
-  font-size: 12px;
-  font-weight: 500;
 }
 .explore-panel {
   position: absolute;
@@ -383,26 +370,6 @@ h1 em {
 .tiny-compass {
   font-size: 17px;
   color: #829273;
-}
-.map-top-label {
-  position: absolute;
-  top: 121px;
-  left: 361px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 8px;
-  letter-spacing: 1.1px;
-  color: #5d7060;
-  background: #f8f7ecb3;
-  padding: 10px 13px;
-  border-radius: 4px;
-  backdrop-filter: blur(12px);
-}
-.map-label-divider {
-  width: 1px;
-  height: 10px;
-  background: #a6b39f;
 }
 .map-controls {
   position: absolute;
@@ -911,7 +878,6 @@ input[type="checkbox"] {
 .theme-night .map-caption em {
   color: #aabb97;
 }
-.theme-night .map-top-label,
 .theme-night .gesture-hint {
   background: #1c302edb;
   color: #afbea2;
@@ -932,9 +898,6 @@ input[type="checkbox"] {
   .explore-panel {
     width: 340px;
     padding: 30px 24px 0;
-  }
-  .map-top-label {
-    left: 386px;
   }
   .map-caption,
   .place-detail {
@@ -983,9 +946,6 @@ input[type="checkbox"] {
   .topbar {
     padding: 0 24px;
   }
-  .map-top-label {
-    left: 325px;
-  }
   .place-detail {
     left: 320px;
     right: 78px;
@@ -1030,10 +990,6 @@ input[type="checkbox"] {
   .top-actions {
     gap: 8px;
   }
-  .top-divider,
-  .share-button span {
-    display: none;
-  }
   .mode-picker button {
     padding: 8px 10px;
   }
@@ -1065,12 +1021,6 @@ input[type="checkbox"] {
     border-radius: 6px;
     padding: 12px 15px;
     font-size: 12px;
-  }
-  .map-top-label {
-    left: auto;
-    right: 80px;
-    top: 99px;
-    font-size: 7px;
   }
   .map-controls {
     top: 97px;
@@ -1150,15 +1100,6 @@ input[type="checkbox"] {
   }
   .info-button {
     width: 25px;
-  }
-  .share-button {
-    padding: 3px;
-  }
-  .share-button svg {
-    width: 15px;
-  }
-  .map-top-label {
-    display: none;
   }
   .map-controls {
     right: 14px;
@@ -1323,15 +1264,10 @@ input[type="checkbox"] {
     0 1px 12px var(--paper),
     0 0 4px var(--paper);
 }
-.topbar .info-button,
-.topbar .share-button {
+.topbar .info-button {
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   border-radius: 6px;
   backdrop-filter: blur(10px);
-}
-.topbar .share-button {
-  min-height: 32px;
-  padding: 8px;
 }
 .terrain-preset {
   display: flex;
@@ -1347,11 +1283,6 @@ input[type="checkbox"] {
 }
 .terrain-preset svg:last-child {
   margin-left: auto;
-}
-@media (max-width: 600px) {
-  .topbar .share-button {
-    padding: 3px;
-  }
 }
 
 .bounded-map {

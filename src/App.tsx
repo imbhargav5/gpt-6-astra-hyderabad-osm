@@ -426,15 +426,6 @@ export default function App() {
           >
             <Info size={19} />
           </button>
-          <span className="top-divider" />
-          <button
-            className="share-button"
-            aria-label={copied ? "View link copied" : "Share view"}
-            onClick={share}
-          >
-            {copied ? <Check size={16} /> : <Share2 size={16} />}
-            <span>{copied ? "Copied" : "Share view"}</span>
-          </button>
         </div>
       </header>
       <aside
@@ -546,11 +537,6 @@ export default function App() {
           <span>INDIA</span>
         </div>
       </aside>
-      <div className="map-top-label">
-        <span className="live-dot" />{" "}
-        {ready ? "LIVE MAP DATA" : "CONNECTING TO THE CITY"}
-        <span className="map-label-divider" /> OSM × TERRAIN
-      </div>
       <button
         className="mobile-explore"
         onClick={() => setMobilePlaces(!mobilePlaces)}
@@ -620,6 +606,13 @@ export default function App() {
           onClick={() => setPanel(panel === "layers" ? null : "layers")}
         >
           <SlidersHorizontal size={19} />
+        </button>
+        <button
+          aria-label={copied ? "View link copied" : "Share view"}
+          title={copied ? "View link copied" : "Share view"}
+          onClick={share}
+        >
+          {copied ? <Check size={19} /> : <Share2 size={19} />}
         </button>
       </nav>
       {!ready && !mapError && (
