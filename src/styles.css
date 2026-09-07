@@ -326,6 +326,41 @@ h1 em {
   width: 19px;
   height: 19px;
 }
+.place-avatar {
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 7px;
+}
+.place-avatar img {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+.place-avatar-large img {
+  width: 80px;
+  height: 80px;
+}
+.place-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+}
+.place-avatar-large svg {
+  width: 38px;
+  height: 38px;
+}
+.detail-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-right: 18px;
+}
+.explore-panel .detail-heading .detail-number {
+  margin: 0;
+}
 .place-icon.water {
   background: #e3eeea;
   color: #6b9894;
@@ -1571,13 +1606,29 @@ input[type="checkbox"] {
   color: var(--muted);
 }
 .explore-panel {
+  bottom: auto;
+  max-height: calc(100% - 206px);
   overflow-y: auto;
+}
+@media (min-width: 901px) {
+  .explore-panel {
+    top: 50%;
+    transform: translateY(-50%);
+    max-height: calc(100% - 230px);
+  }
+}
+@media (max-width: 600px) {
+  .explore-panel {
+    max-height: calc(100% - 189px);
+  }
 }
 .explore-panel .search-box {
   flex-shrink: 0;
 }
 .explore-panel .place-list {
-  min-height: 120px;
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
 }
 @media (hover: hover) and (pointer: fine) {
   .category-tabs [role="tab"]:not([aria-selected="true"]):hover,

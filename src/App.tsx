@@ -31,7 +31,6 @@ import {
   Shield,
   House,
   Landmark as HeritageIcon,
-  ArrowDownLeft,
   ArrowRight,
   BookOpen,
   Building2,
@@ -93,6 +92,36 @@ const categoryIcons = {
 function PlaceCategoryIcon({ category }: { category: Category }) {
   const Icon = categoryIcons[category];
   return <Icon size={18} />;
+}
+function PlaceAvatar({
+  place,
+  large = false,
+}: {
+  place: Landmark;
+  large?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  const size = large ? 80 : 40;
+  return (
+    <span
+      className={`place-icon place-avatar${large ? " place-avatar-large" : ""}`}
+      aria-hidden="true"
+    >
+      {failed ? (
+        <PlaceCategoryIcon category={place.category} />
+      ) : (
+        <img
+          src={`${import.meta.env.BASE_URL}places/${place.id}.jpg`}
+          alt=""
+          width={size}
+          height={size}
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </span>
+  );
 }
 const layerNames: Record<LayerKey, string> = {
   buildings: "3D buildings",
@@ -671,9 +700,12 @@ export default function App() {
         />
         {selected && (
           <section className="place-detail" aria-label="Selected place">
-            <div className="detail-number">
-              {String(landmarks.indexOf(selected) + 1).padStart(2, "0")}
-              <span>/ {landmarks.length}</span>
+            <div className="detail-heading">
+              <PlaceAvatar key={selected.id} place={selected} large />
+              <div className="detail-number">
+                {String(landmarks.indexOf(selected) + 1).padStart(2, "0")}
+                <span>/ {landmarks.length}</span>
+              </div>
             </div>
             <div className="detail-content">
               <span className="eyebrow">
@@ -755,11 +787,7 @@ export default function App() {
               aria-current={selected?.id === p.id ? "true" : undefined}
               onClick={() => selectRef.current(p)}
             >
-              <span
-                className={`place-icon ${["Lakes & reservoirs", "Parks, wildlife & sports"].includes(p.category) ? "water" : ["Heritage & culture", "Temples & worship"].includes(p.category) ? "heritage" : "modern"}`}
-              >
-                <PlaceCategoryIcon category={p.category} />
-              </span>
+              <PlaceAvatar place={p} />
               <span className="place-text">
                 <strong>{p.name}</strong>
                 <small>{p.area}</small>
@@ -1070,6 +1098,15 @@ export default function App() {
               </p>
               <h3>A few things to know</h3>
               <p>
+                <a
+                  href={`${import.meta.env.BASE_URL}places/credits.html`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Place photo credits
+                </a>
+              </p>
+              <p>
                 Building coverage and heights vary. Missing heights use a 9 m
                 fallback; the provider may also estimate heights. Default
                 building and terrain exaggeration are ×2 and ×2.5. Landmark
@@ -1105,18 +1142,6 @@ export default function App() {
             </div>
           )}
         </section>
-      )}
-      {!selected && (
-        <div className="map-caption">
-          <span className="caption-rule" />
-          <div>
-            <span className="eyebrow">A NEW PERSPECTIVE</span>
-            <p>
-              The familiar, <em>rediscovered.</em>
-            </p>
-          </div>
-          <ArrowDownLeft size={27} strokeWidth={1} />
-        </div>
       )}
       <footer className="bottom-bar">
         <div>
