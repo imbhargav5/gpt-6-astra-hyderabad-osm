@@ -6,7 +6,7 @@ import {
 
 /** Presentation crop, not an administrative boundary. All curated places fit inside. */
 export const CITY_BOUNDS: [number, number, number, number] = [
-  78.23, 17.2, 78.63, 17.56,
+  78.23, 17.2, 78.63, 17.575,
 ];
 export type ClipPoint = [number, number, number, number];
 

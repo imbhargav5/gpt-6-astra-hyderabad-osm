@@ -1,3 +1,4 @@
+import { CITY_BOUNDS } from "./city-slab";
 import { describe, expect, it } from "vitest";
 import {
   createExpression,
@@ -49,7 +50,9 @@ describe("landmark navigation", () => {
     ]);
     expect(searchLandmarks("old city").length).toBeGreaterThan(1);
     expect(
-      searchLandmarks("", "Heritage").every((l) => l.category === "Heritage"),
+      searchLandmarks("", "Heritage & monuments").every(
+        (l) => l.category === "Heritage & monuments",
+      ),
     ).toBe(true);
     expect(searchLandmarks("not-a-landmark")).toEqual([]);
   });
@@ -61,6 +64,32 @@ describe("landmark navigation", () => {
       expect(l.coordinates[0]).toBeLessThan(78.75);
       expect(l.coordinates[1]).toBeGreaterThan(17.12);
       expect(l.coordinates[1]).toBeLessThan(17.67);
+    }
+  });
+  it("finds the newly requested places by common names and spelling variants", () => {
+    const queries = {
+      "Birla Mandir": "birla-mandir",
+      planetarium: "birla-planetarium",
+      "zoo park": "nehru-zoo",
+      "Durgam Cheruvu suspension bridge": "durgam-bridge",
+      "Chilkoor Balaji": "chilkur-balaji",
+      "Shri Jagannath Swami": "jagannath-temple",
+      "Secunderabad Gurudwara": "secunderabad-gurdwara",
+      "Secunderbad clock tower": "secunderabad-clock-tower",
+      "Parade Grounds": "parade-grounds",
+      Gymkhana: "gymkhana-grounds",
+      Chanchalgunda: "chanchalguda-jail",
+    };
+    for (const [query, id] of Object.entries(queries))
+      expect(searchLandmarks(query).map((l) => l.id)).toContain(id);
+    expect(new Set(landmarks.map((l) => l.id)).size).toBe(landmarks.length);
+    for (const {
+      coordinates: [lng, lat],
+    } of landmarks) {
+      expect(lng).toBeGreaterThan(CITY_BOUNDS[0]);
+      expect(lng).toBeLessThan(CITY_BOUNDS[2]);
+      expect(lat).toBeGreaterThan(CITY_BOUNDS[1]);
+      expect(lat).toBeLessThan(CITY_BOUNDS[3]);
     }
   });
 });

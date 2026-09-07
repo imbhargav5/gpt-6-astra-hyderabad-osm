@@ -1,3 +1,17 @@
+import {
+  installFlyovers,
+  applyFlyoverSettings,
+  watchFlyovers,
+} from "./flyovers";
+import { placeCategories, type Category } from "./place-categories";
+import { placeModelsLayer } from "./place-models";
+import { installSiteDetails, applySiteSettings } from "./place-surfaces";
+import { installTraffic } from "./traffic";
+import { buddhaLayer } from "./buddha";
+import {
+  installLandmarkDetails,
+  applyLandmarkDetailSettings,
+} from "./landmark-detail";
 import { readMapSettings, writeMapSettings } from "./map-settings";
 import { landTexture } from "./land-texture";
 import { forestLayer } from "./forest";
@@ -6,6 +20,15 @@ import { installMouseOrbit } from "./mouse-orbit";
 import { useEffect, useRef, useState } from "react";
 import maplibregl, { type Map as AtlasMap } from "maplibre-gl";
 import {
+  ShoppingBag,
+  Hospital,
+  Church,
+  Trophy,
+  FlaskConical,
+  Plane,
+  Shield,
+  House,
+  Landmark as HeritageIcon,
   ArrowDownLeft,
   ArrowRight,
   BookOpen,
@@ -57,7 +80,24 @@ const defaultView = {
   pitch: 57,
   bearing: -25,
 };
-const categories = ["All places", "Heritage", "Water & nature", "Modern city"];
+const categoryIcons = {
+  "Heritage & monuments": HeritageIcon,
+  "Temples & worship": Church,
+  "Lakes & reservoirs": Droplets,
+  "Parks & wildlife": Trees,
+  "Sports grounds": Trophy,
+  "Shopping malls": ShoppingBag,
+  Healthcare: Hospital,
+  "Science & culture": FlaskConical,
+  "Tech & business": Building2,
+  Neighbourhoods: House,
+  "Transport & aviation": Plane,
+  "Government & defence": Shield,
+} satisfies Record<Category, typeof Building2>;
+function PlaceCategoryIcon({ category }: { category: Category }) {
+  const Icon = categoryIcons[category];
+  return <Icon size={18} />;
+}
 const layerNames: Record<LayerKey, string> = {
   buildings: "3D buildings",
   roads: "Roads & rail",
@@ -80,6 +120,7 @@ export default function App() {
   const [mobilePlaces, setMobilePlaces] = useState(false);
   const [height, setHeight] = useState(savedSettings.height);
   const [terrain, setTerrain] = useState(savedSettings.terrain);
+  const [traffic, setTraffic] = useState(savedSettings.traffic);
   const [terrainOn, setTerrainOn] = useState(savedSettings.terrainOn);
   const [layers, setLayers] = useState<Record<LayerKey, boolean>>(
     savedSettings.layers,
@@ -97,11 +138,11 @@ export default function App() {
   const selectRef = useRef<(place: Landmark) => void>(() => {});
   const stopRef = useRef<() => void>(() => {});
   const flightRef = useRef<() => void>(() => {});
-  const config = useRef({ theme, height, terrain, terrainOn, layers });
-  config.current = { theme, height, terrain, terrainOn, layers };
+  const config = useRef({ theme, height, terrain, terrainOn, layers, traffic });
+  config.current = { theme, height, terrain, terrainOn, layers, traffic };
   useEffect(() => {
-    writeMapSettings({ theme, height, terrain, terrainOn, layers });
-  }, [theme, height, terrain, terrainOn, layers]);
+    writeMapSettings({ theme, height, terrain, terrainOn, layers, traffic });
+  }, [theme, height, terrain, terrainOn, layers, traffic]);
   const applySettings = (m: AtlasMap) => {
     const s = config.current;
     for (const [key, ids] of Object.entries(layerGroups))
@@ -124,6 +165,23 @@ export default function App() {
         s.height,
       ]);
     }
+    applyLandmarkDetailSettings(m, {
+      height: s.height,
+      theme: s.theme,
+      visible: s.layers.buildings,
+    });
+    applyFlyoverSettings(m, {
+      visible: config.current.layers.roads,
+      height: config.current.height,
+      theme: config.current.theme,
+    });
+    applySiteSettings(m, {
+      theme: s.theme,
+      height: s.height,
+      parks: s.layers.parks,
+      roads: s.layers.roads,
+      buildings: s.layers.buildings,
+    });
     m.setTerrain(
       s.terrainOn ? { source: "terrain", exaggeration: s.terrain } : null,
     );
@@ -158,6 +216,16 @@ export default function App() {
       return;
     }
     map.current = m;
+    const removeFlyovers = watchFlyovers(m);
+    const removeLandmarkDetails = installLandmarkDetails(m, () => ({
+      height: config.current.height,
+      theme: config.current.theme,
+      visible: config.current.layers.buildings,
+    }));
+    const removeTraffic = installTraffic(
+      m,
+      () => config.current.traffic && config.current.layers.roads,
+    );
     const removeMouseOrbit = installMouseOrbit(m, () => stopRef.current());
     m.addControl(
       new maplibregl.AttributionControl({ compact: true }),
@@ -176,6 +244,8 @@ export default function App() {
     );
     m.on("style.load", () => {
       if (!m.hasImage("land-grain")) m.addImage("land-grain", landTexture());
+      installSiteDetails(m);
+      installFlyovers(m);
       applySettings(m);
       if (!m.getLayer("forest-trees"))
         m.addLayer(
@@ -183,6 +253,26 @@ export default function App() {
             visible: config.current.layers.parks,
             height: config.current.height,
             terrain: config.current.terrain,
+            terrainOn: config.current.terrainOn,
+            theme: config.current.theme,
+          })),
+          "water-labels",
+        );
+      if (!m.getLayer("detailed-place-models"))
+        m.addLayer(
+          placeModelsLayer(() => ({
+            visible: config.current.layers.buildings,
+            height: config.current.height,
+            terrainOn: config.current.terrainOn,
+            theme: config.current.theme,
+          })),
+          "water-labels",
+        );
+      if (!m.getLayer("buddha-statue"))
+        m.addLayer(
+          buddhaLayer(() => ({
+            visible: config.current.layers.buildings,
+            height: config.current.height,
             terrainOn: config.current.terrainOn,
             theme: config.current.theme,
           })),
@@ -237,6 +327,9 @@ export default function App() {
     return () => {
       clearTimeout(timeout);
       removeMouseOrbit();
+      removeTraffic();
+      removeLandmarkDetails();
+      removeFlyovers();
       markers.current.forEach((marker) => marker.remove());
       m.remove();
       map.current = null;
@@ -249,8 +342,25 @@ export default function App() {
     for (const layer of style.layers)
       for (const [property, value] of Object.entries(layer.paint ?? {}))
         m.setPaintProperty(layer.id, property, value);
+    applyFlyoverSettings(m, {
+      visible: config.current.layers.roads,
+      height: config.current.height,
+      theme: config.current.theme,
+    });
+    applySiteSettings(m, {
+      theme,
+      height: config.current.height,
+      parks: config.current.layers.parks,
+      roads: config.current.layers.roads,
+      buildings: config.current.layers.buildings,
+    });
     m.setLight(style.light!);
     m.setSky(style.sky!);
+    applyLandmarkDetailSettings(m, {
+      height: config.current.height,
+      theme,
+      visible: config.current.layers.buildings,
+    });
   }, [theme, ready]);
   useEffect(() => {
     const m = map.current;
@@ -479,16 +589,30 @@ export default function App() {
             </button>
           )}
         </label>
-        <div className="filters">
-          {categories.map((c) => (
-            <button
-              key={c}
-              aria-pressed={category === c}
-              onClick={() => setCategory(c)}
-            >
-              {c}
+        <label className="category-filter">
+          <span>Category</span>
+          <select
+            aria-label="Filter places by category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="All places">
+              All categories · {landmarks.length}
+            </option>
+            {placeCategories.map((c) => (
+              <option key={c} value={c}>
+                {c} · {landmarks.filter((p) => p.category === c).length}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="results-count" aria-live="polite">
+          {results.length} {results.length === 1 ? "place" : "places"}
+          {category !== "All places" && (
+            <button onClick={() => setCategory("All places")}>
+              Clear category <X size={12} />
             </button>
-          ))}
+          )}
         </div>
         <div className="place-list">
           {results.map((p) => (
@@ -498,15 +622,9 @@ export default function App() {
               onClick={() => selectRef.current(p)}
             >
               <span
-                className={`place-icon ${p.category === "Water & nature" ? "water" : p.category === "Heritage" ? "heritage" : "modern"}`}
+                className={`place-icon ${["Lakes & reservoirs", "Parks & wildlife"].includes(p.category) ? "water" : ["Heritage & monuments", "Temples & worship"].includes(p.category) ? "heritage" : "modern"}`}
               >
-                {p.category === "Water & nature" ? (
-                  <Droplets size={18} />
-                ) : p.category === "Heritage" ? (
-                  <LandmarkLogo />
-                ) : (
-                  <Building2 size={18} />
-                )}
+                <PlaceCategoryIcon category={p.category} />
               </span>
               <span className="place-text">
                 <strong>{p.name}</strong>
@@ -701,6 +819,16 @@ export default function App() {
                     onChange={(e) => setTerrainOn(e.target.checked)}
                   />
                 </label>
+                <label>
+                  <span>
+                    <Navigation size={17} /> Gentle traffic
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={traffic}
+                    onChange={(e) => setTraffic(e.target.checked)}
+                  />
+                </label>
               </div>
               <button
                 className="terrain-preset"
@@ -805,9 +933,10 @@ export default function App() {
               <p>
                 Building coverage and heights vary. Missing heights use a 9 m
                 fallback; the provider may also estimate heights. Default
-                building and terrain exaggeration are ×2 and ×2.5. Landmarks are
-                curated locations, not bespoke architectural models. This is an
-                exploration map, not a flood-risk or survey tool.
+                building and terrain exaggeration are ×2 and ×2.5. Landmark
+                façades and the Charminar and Buddha models are illustrative
+                details, not measured reconstructions. This is an exploration
+                map, not a flood-risk or survey tool.
               </p>
               <p>
                 Trees are illustrative forest symbols placed only in areas
@@ -815,6 +944,11 @@ export default function App() {
                 park boundaries do not generate trees. Unmapped canopy will be
                 missing; tree sizes and spacing are stylized and change with
                 zoom.
+              </p>
+              <p>
+                Moving cars and aircraft are illustrative, following mapped
+                roads and runways. They do not represent live traffic or
+                flights. Gentle traffic pauses when reduced motion is enabled.
               </p>
               <h3>Find your way</h3>
               <p>
@@ -835,7 +969,7 @@ export default function App() {
         <section className="place-detail" aria-label="Selected place">
           <div className="detail-number">
             {String(landmarks.indexOf(selected) + 1).padStart(2, "0")}
-            <span>/ 16</span>
+            <span>/ {landmarks.length}</span>
           </div>
           <div className="detail-content">
             <span className="eyebrow">

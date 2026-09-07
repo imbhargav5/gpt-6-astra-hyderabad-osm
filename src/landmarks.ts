@@ -1,4 +1,6 @@
-export type Category = "Heritage" | "Water & nature" | "Modern city";
+import { campusPlaces } from "./campus-sites";
+import type { Category } from "./place-categories";
+export type { Category } from "./place-categories";
 export interface Landmark {
   id: string;
   name: string;
@@ -8,13 +10,14 @@ export interface Landmark {
   zoom: number;
   bearing: number;
   description: string;
+  aliases?: string[];
 }
 export const landmarks: Landmark[] = [
   {
     id: "hussain-sagar",
     name: "Hussain Sagar",
     area: "The heart of the twin cities",
-    category: "Water & nature",
+    category: "Lakes & reservoirs",
     coordinates: [78.4747, 17.4239],
     zoom: 14.3,
     bearing: -25,
@@ -25,7 +28,7 @@ export const landmarks: Landmark[] = [
     id: "charminar",
     name: "Charminar",
     area: "Old City",
-    category: "Heritage",
+    category: "Heritage & monuments",
     coordinates: [78.47467, 17.36156],
     zoom: 17,
     bearing: 30,
@@ -36,7 +39,7 @@ export const landmarks: Landmark[] = [
     id: "golconda",
     name: "Golconda Fort",
     area: "Fort & granite hills",
-    category: "Heritage",
+    category: "Heritage & monuments",
     coordinates: [78.4011, 17.3833],
     zoom: 15.6,
     bearing: -35,
@@ -47,7 +50,7 @@ export const landmarks: Landmark[] = [
     id: "durgam-cheruvu",
     name: "Durgam Cheruvu",
     area: "Lake & cable bridge",
-    category: "Water & nature",
+    category: "Lakes & reservoirs",
     coordinates: [78.3894, 17.4347],
     zoom: 15.6,
     bearing: 35,
@@ -58,8 +61,8 @@ export const landmarks: Landmark[] = [
     id: "cyber-towers",
     name: "Cyber Towers",
     area: "HITEC City",
-    category: "Modern city",
-    coordinates: [78.3772, 17.4506],
+    category: "Tech & business",
+    coordinates: [78.38113, 17.45047],
     zoom: 16,
     bearing: -30,
     description:
@@ -69,7 +72,7 @@ export const landmarks: Landmark[] = [
     id: "financial-district",
     name: "Financial District",
     area: "Nanakramguda",
-    category: "Modern city",
+    category: "Tech & business",
     coordinates: [78.3475, 17.4191],
     zoom: 15.6,
     bearing: -40,
@@ -80,7 +83,7 @@ export const landmarks: Landmark[] = [
     id: "kokapet",
     name: "Kokapet",
     area: "The western edge",
-    category: "Modern city",
+    category: "Neighbourhoods",
     coordinates: [78.335, 17.394],
     zoom: 15,
     bearing: 25,
@@ -91,7 +94,7 @@ export const landmarks: Landmark[] = [
     id: "gandipet",
     name: "Osman Sagar",
     area: "Gandipet reservoir",
-    category: "Water & nature",
+    category: "Lakes & reservoirs",
     coordinates: [78.2985, 17.3814],
     zoom: 13.7,
     bearing: 20,
@@ -102,18 +105,18 @@ export const landmarks: Landmark[] = [
     id: "buddha",
     name: "Buddha Statue",
     area: "Hussain Sagar island",
-    category: "Heritage",
-    coordinates: [78.475, 17.4156],
-    zoom: 17,
+    category: "Heritage & monuments",
+    coordinates: [78.475004, 17.415568],
+    zoom: 18.1,
     bearing: 0,
     description:
-      "An island landmark in Hussain Sagar. The map shows the mapped island and surrounding water; the statue is identified by a landmark marker.",
+      "A standing Buddha rises from the island in Hussain Sagar. Orbit the illustrative sculpture to see its raised hand, carved robe folds, lotus pedestal and serene face.",
   },
   {
     id: "jubilee-hills",
     name: "Jubilee Hills",
     area: "The Deccan landscape",
-    category: "Water & nature",
+    category: "Neighbourhoods",
     coordinates: [78.407, 17.431],
     zoom: 15,
     bearing: 45,
@@ -124,8 +127,8 @@ export const landmarks: Landmark[] = [
     id: "t-hub",
     name: "T-Hub",
     area: "Hyderabad Knowledge City",
-    category: "Modern city",
-    coordinates: [78.3829, 17.4343],
+    category: "Tech & business",
+    coordinates: [78.37902, 17.43401],
     zoom: 16.5,
     bearing: -25,
     description:
@@ -135,7 +138,7 @@ export const landmarks: Landmark[] = [
     id: "secretariat",
     name: "Telangana Secretariat",
     area: "South shore of Hussain Sagar",
-    category: "Modern city",
+    category: "Government & defence",
     coordinates: [78.4701, 17.4095],
     zoom: 16.3,
     bearing: 35,
@@ -146,7 +149,7 @@ export const landmarks: Landmark[] = [
     id: "chowmahalla",
     name: "Chowmahalla Palace",
     area: "Khilwat · Old City",
-    category: "Heritage",
+    category: "Heritage & monuments",
     coordinates: [78.4717, 17.3578],
     zoom: 17,
     bearing: 25,
@@ -157,7 +160,7 @@ export const landmarks: Landmark[] = [
     id: "mecca-masjid",
     name: "Mecca Masjid",
     area: "Charminar precinct",
-    category: "Heritage",
+    category: "Temples & worship",
     coordinates: [78.4734, 17.3604],
     zoom: 17,
     bearing: -20,
@@ -168,7 +171,7 @@ export const landmarks: Landmark[] = [
     id: "falaknuma",
     name: "Falaknuma Palace",
     area: "Southern hilltop",
-    category: "Heritage",
+    category: "Heritage & monuments",
     coordinates: [78.4675, 17.3319],
     zoom: 16.4,
     bearing: 15,
@@ -179,13 +182,158 @@ export const landmarks: Landmark[] = [
     id: "airport",
     name: "Hyderabad Airport",
     area: "Shamshabad · RGIA",
-    category: "Modern city",
+    category: "Transport & aviation",
     coordinates: [78.4294, 17.2403],
     zoom: 13.8,
     bearing: -15,
     description:
       "Long runways, terminal buildings and sweeping access roads reveal the scale of the airport at the southern edge of metropolitan Hyderabad.",
   },
+  {
+    id: "birla-mandir",
+    name: "Birla Mandir",
+    area: "Naubat Pahad · Lakdi-ka-pul",
+    category: "Temples & worship",
+    coordinates: [78.46926, 17.4057],
+    zoom: 17.2,
+    bearing: 25,
+    description:
+      "The hilltop temple above central Hyderabad. Explore its setting on Naubat Pahad and the surrounding city slopes.",
+    aliases: ["Birla temple"],
+  },
+  {
+    id: "birla-planetarium",
+    name: "B. M. Birla Planetarium",
+    area: "Birla Science Centre · Adarsh Nagar",
+    category: "Science & culture",
+    coordinates: [78.47072, 17.40332],
+    zoom: 17.3,
+    bearing: -25,
+    description:
+      "The planetarium sits in the Birla Science Centre precinct, close to Birla Mandir. Zoom in to explore the campus and its place in the central city.",
+    aliases: ["planetarium", "Birla science museum"],
+  },
+  {
+    id: "nehru-zoo",
+    name: "Nehru Zoological Park",
+    area: "Zoo Park · Bahadurpura",
+    category: "Parks & wildlife",
+    coordinates: [78.44556, 17.35144],
+    zoom: 15.2,
+    bearing: 20,
+    description:
+      "Explore the zoo’s broad grounds beside Mir Alam Tank, with mapped paths, water and landscaped areas.",
+    aliases: ["zoo park", "Hyderabad zoo", "Nehru zoo"],
+  },
+  {
+    id: "durgam-bridge",
+    name: "Durgam Cheruvu Cable Bridge",
+    area: "Madhapur · Jubilee Hills crossing",
+    category: "Transport & aviation",
+    coordinates: [78.38988, 17.43169],
+    zoom: 16.8,
+    bearing: 45,
+    description:
+      "A dedicated view of the bridge crossing Durgam Cheruvu, between the Madhapur office district and the Jubilee Hills side of the lake.",
+    aliases: [
+      "Durgam Cheruvu suspension bridge",
+      "cable bridge",
+      "hanging bridge",
+    ],
+  },
+  {
+    id: "chilkur-balaji",
+    name: "Chilkur Balaji Temple",
+    area: "Chilkur · Osman Sagar",
+    category: "Temples & worship",
+    coordinates: [78.29884, 17.35877],
+    zoom: 17.1,
+    bearing: 20,
+    description:
+      "The temple precinct near Osman Sagar, southwest of the city. Explore its village setting and the surrounding open landscape.",
+    aliases: ["Chilkoor Balaji", "Chilukur Balaji", "Visa Balaji temple"],
+  },
+  {
+    id: "jagannath-temple",
+    name: "Shri Jagannath Swami Temple",
+    area: "Road No. 12 · Banjara Hills",
+    category: "Temples & worship",
+    coordinates: [78.425925, 17.415005],
+    zoom: 17.3,
+    bearing: -25,
+    description:
+      "The Jagannath temple precinct in Banjara Hills, set among the neighbourhood’s winding roads and rising terrain.",
+    aliases: [
+      "Shri Jagannatha Swami Temple",
+      "Sri Jagannath temple",
+      "Puri Jagannath temple",
+    ],
+  },
+  {
+    id: "secunderabad-gurdwara",
+    name: "Gurdwara Sahib Secunderabad",
+    area: "Regimental Bazaar · Shivaji Nagar",
+    category: "Temples & worship",
+    coordinates: [78.500577, 17.436064],
+    zoom: 17.4,
+    bearing: 20,
+    description:
+      "Gurdwara Sahib in Regimental Bazaar, within the dense neighbourhood near Secunderabad railway station.",
+    aliases: [
+      "Secunderabad Gurudwara",
+      "Secunderbad gurudwara",
+      "Gurudwara Saheb",
+    ],
+  },
+  {
+    id: "secunderabad-clock-tower",
+    name: "Secunderabad Clock Tower",
+    area: "Clock Tower Park · Secunderabad",
+    category: "Heritage & monuments",
+    coordinates: [78.498554, 17.440903],
+    zoom: 17.5,
+    bearing: -20,
+    description:
+      "The clock tower and its small park form a landmark in central Secunderabad, south of Parade Grounds.",
+    aliases: ["Secunderbad clock tower"],
+  },
+  {
+    id: "parade-grounds",
+    name: "Parade Grounds",
+    area: "Cantonment · Secunderabad",
+    category: "Sports grounds",
+    coordinates: [78.49294, 17.44488],
+    zoom: 15.9,
+    bearing: 15,
+    description:
+      "Explore the large open parade ground in Secunderabad and the surrounding cantonment streets.",
+    aliases: ["Parade Ground", "Secunderabad parade grounds"],
+  },
+  {
+    id: "gymkhana-grounds",
+    name: "Gymkhana Grounds",
+    area: "Cricket grounds · Secunderabad",
+    category: "Sports grounds",
+    coordinates: [78.49001, 17.44499],
+    zoom: 16.5,
+    bearing: -20,
+    description:
+      "The cricket grounds west of Parade Grounds provide a broad open space within Secunderabad’s urban fabric.",
+    aliases: ["Gymkhana Ground", "Gymkhana cricket stadium"],
+  },
+  {
+    id: "chanchalguda-jail",
+    name: "Chanchalguda Central Jail",
+    area: "Chanchalguda · Old City",
+    category: "Government & defence",
+    coordinates: [78.499675, 17.366838],
+    zoom: 16.3,
+    bearing: 25,
+    description:
+      "An established institutional precinct in Chanchalguda. View the mapped compound and its setting in the eastern part of the Old City.",
+    aliases: ["Chanchalgunda jail", "Chanchalguda prison", "Chanchalguda jail"],
+  },
+  ...campusPlaces,
 ];
 export const tourStops = [
   "charminar",
@@ -202,6 +350,8 @@ export function searchLandmarks(query: string, category = "All places") {
   return landmarks.filter(
     (l) =>
       (category === "All places" || l.category === category) &&
-      `${l.name} ${l.area} ${l.category}`.toLowerCase().includes(q),
+      `${l.name} ${l.area} ${l.category} ${(l.aliases ?? []).join(" ")}`
+        .toLowerCase()
+        .includes(q),
   );
 }

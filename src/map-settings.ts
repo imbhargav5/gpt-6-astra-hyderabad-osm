@@ -5,6 +5,7 @@ export interface MapSettings {
   height: number;
   terrain: number;
   terrainOn: boolean;
+  traffic: boolean;
   layers: Record<LayerKey, boolean>;
 }
 const defaults = (): MapSettings => ({
@@ -12,6 +13,7 @@ const defaults = (): MapSettings => ({
   height: 2,
   terrain: 2.5,
   terrainOn: true,
+  traffic: true,
   layers: {
     buildings: true,
     roads: true,
@@ -40,6 +42,7 @@ export function readMapSettings(
       return settings;
     if (["day", "sunset", "night"].includes(value.theme))
       settings.theme = value.theme;
+    if (typeof value.traffic === "boolean") settings.traffic = value.traffic;
     settings.height = slider(value.height, 4, settings.height);
     settings.terrain = slider(value.terrain, 6, settings.terrain);
     if (typeof value.terrainOn === "boolean")
