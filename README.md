@@ -1,5 +1,7 @@
 # Hyderabad Atlas
 
+![Hyderabad Atlas showing a 3D map of the city around Hussain Sagar](docs/images/hyderabad-atlas-hero.png)
+
 An interactive 3D atlas of Hyderabad, from the Old City to the western technology corridor. Built with React, TypeScript, Vite and MapLibre GL JS.
 
 ## Run locally
