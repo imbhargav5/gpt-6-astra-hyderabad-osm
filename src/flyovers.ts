@@ -1,11 +1,10 @@
+import {
+  flyoverMeshLayer,
+  updateFlyoverMesh,
+  type FlyoverSettings,
+} from "./flyover-mesh";
 import type { FeatureCollection, Polygon, Position } from "geojson";
-import type {
-  Map,
-  ExpressionSpecification,
-  GeoJSONSource,
-  MapSourceDataEvent,
-} from "maplibre-gl";
-import type { Theme } from "./map-style";
+import type { Map, GeoJSONSource, MapSourceDataEvent } from "maplibre-gl";
 import roads from "./data/flyovers.json";
 import { CITY_BOUNDS } from "./city-slab";
 export interface ElevatedRoad {
@@ -36,7 +35,27 @@ export function buildFlyovers(
     });
   };
   for (const road of routes) {
-    const coords = road.coordinates;
+    const coords: Position[] = [];
+    for (let i = 0; i < road.coordinates.length; i++) {
+      const a = road.coordinates[i];
+      if (i === 0) {
+        coords.push(a);
+        continue;
+      }
+      const prev = road.coordinates[i - 1],
+        steps = Math.max(
+          1,
+          Math.ceil(
+            Math.hypot((a[0] - prev[0]) * 106100, (a[1] - prev[1]) * 111320) /
+              20,
+          ),
+        );
+      for (let j = 1; j <= steps; j++)
+        coords.push([
+          prev[0] + ((a[0] - prev[0]) * j) / steps,
+          prev[1] + ((a[1] - prev[1]) * j) / steps,
+        ]);
+    }
     if (coords.length < 2) continue;
     // The lake's cable bridge has its own detailed model.
     if (
@@ -154,7 +173,6 @@ export function buildFlyovers(
   return { type: "FeatureCollection", features };
 }
 export const elevatedRoads = roads as ElevatedRoad[];
-const layerIds = ["flyover-structure", "flyover-detail"];
 export function installFlyovers(map: Map) {
   if (map.getSource("flyovers")) return;
   const data = buildFlyovers(elevatedRoads);
@@ -164,65 +182,11 @@ export function installFlyovers(map: Map) {
     tolerance: 0,
     maxzoom: 18,
   });
-  for (const [index, id] of layerIds.entries())
-    map.addLayer(
-      {
-        id,
-        type: "fill-extrusion",
-        source: "flyovers",
-        minzoom: index ? 14 : 12,
-        filter: index
-          ? ["in", ["get", "part"], ["literal", ["pier", "marking"]]]
-          : [
-              "in",
-              ["get", "part"],
-              ["literal", ["deck", "surface", "barrier"]],
-            ],
-        paint: {
-          "fill-extrusion-opacity": 1,
-          "fill-extrusion-vertical-gradient": true,
-        },
-      },
-      "water-labels",
-    );
+  map.addLayer(flyoverMeshLayer(data), "water-labels");
   map.getContainer().dataset.flyoverRoads = String(elevatedRoads.length);
 }
-export function applyFlyoverSettings(
-  map: Map,
-  s: { visible: boolean; height: number; theme: Theme },
-) {
-  const colors =
-    s.theme === "night"
-      ? ["#526a65", "#3c5453", "#829790", "#c3c8aa"]
-      : s.theme === "sunset"
-        ? ["#c9b69b", "#a49b89", "#e6d3ae", "#fff0ce"]
-        : ["#b5b9ab", "#8b9a97", "#e7e7d4", "#faf5de"];
-  const color: ExpressionSpecification = [
-    "match",
-    ["get", "part"],
-    "deck",
-    colors[0],
-    "surface",
-    colors[1],
-    "marking",
-    colors[3],
-    colors[2],
-  ];
-  for (const id of layerIds)
-    if (map.getLayer(id)) {
-      map.setLayoutProperty(id, "visibility", s.visible ? "visible" : "none");
-      map.setPaintProperty(id, "fill-extrusion-height", [
-        "*",
-        ["get", "top"],
-        s.height,
-      ]);
-      map.setPaintProperty(id, "fill-extrusion-base", [
-        "*",
-        ["get", "base"],
-        s.height,
-      ]);
-      map.setPaintProperty(id, "fill-extrusion-color", color);
-    }
+export function applyFlyoverSettings(map: Map, s: FlyoverSettings) {
+  updateFlyoverMesh(map, undefined, s);
 }
 
 /** Extend the checked-in corridor data with bridges in the live vector tiles. */
@@ -286,9 +250,9 @@ export function watchFlyovers(map: Map) {
     const next = JSON.stringify(extra);
     if (next === signature) return;
     signature = next;
-    (map.getSource("flyovers") as GeoJSONSource).setData(
-      buildFlyovers([...elevatedRoads, ...extra]),
-    );
+    const data = buildFlyovers([...elevatedRoads, ...extra]);
+    (map.getSource("flyovers") as GeoJSONSource).setData(data);
+    updateFlyoverMesh(map, data);
     map.getContainer().dataset.flyoverRoads = String(
       elevatedRoads.length + extra.length,
     );

@@ -171,6 +171,7 @@ export default function App() {
       visible: s.layers.buildings,
     });
     applyFlyoverSettings(m, {
+      terrainOn: config.current.terrainOn,
       visible: config.current.layers.roads,
       height: config.current.height,
       theme: config.current.theme,
@@ -343,6 +344,7 @@ export default function App() {
       for (const [property, value] of Object.entries(layer.paint ?? {}))
         m.setPaintProperty(layer.id, property, value);
     applyFlyoverSettings(m, {
+      terrainOn: config.current.terrainOn,
       visible: config.current.layers.roads,
       height: config.current.height,
       theme: config.current.theme,
@@ -1045,12 +1047,14 @@ export default function App() {
           <span className="live-dot" />
           <strong>HYDERABAD ATLAS</strong>
           <span className="footer-divider" />
-          An open-source city exploration
+          <span className="footer-text">An open-source city exploration</span>
         </div>
         <div className="coordinates">
-          {view.lat.toFixed(4)}° N &nbsp; {view.lng.toFixed(4)}° E
+          <span className="footer-text">
+            {view.lat.toFixed(4)}° N &nbsp; {view.lng.toFixed(4)}° E
+          </span>
           <span className="footer-divider" />
-          ZOOM {view.zoom.toFixed(1)}
+          <span className="footer-text">ZOOM {view.zoom.toFixed(1)}</span>
         </div>
       </footer>
       <div className="gesture-hint">

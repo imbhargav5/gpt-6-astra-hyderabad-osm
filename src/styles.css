@@ -56,7 +56,7 @@ a {
 }
 .map-canvas {
   position: absolute;
-  inset: 0 0 37px;
+  inset: 0;
 }
 .map-vignette {
   position: absolute;
@@ -462,10 +462,14 @@ h1 em {
   align-items: center;
   justify-content: space-between;
   padding: 0 26px;
-  background: var(--paper);
-  border-top: 1px solid var(--line);
+  background: transparent;
+  border-top: 0;
   font-size: 9px;
   color: #87917f;
+}
+.bottom-bar .footer-text,
+.bottom-bar strong {
+  opacity: 0.75;
 }
 .bottom-bar > div {
   display: flex;
@@ -531,7 +535,7 @@ h1 em {
   z-index: 2;
 }
 .maplibregl-ctrl-bottom-right {
-  bottom: 5px;
+  bottom: 42px;
   right: 8px;
 }
 .maplibregl-ctrl-attrib {
@@ -1180,7 +1184,7 @@ input[type="checkbox"] {
     margin: 0;
   }
   .map-canvas {
-    bottom: 33px;
+    bottom: 0;
   }
   .gesture-hint {
     left: 16px;
@@ -1192,7 +1196,7 @@ input[type="checkbox"] {
   }
   .maplibregl-ctrl-bottom-right {
     right: 1px;
-    bottom: 0;
+    bottom: 33px;
   }
   .place-detail {
     left: 13px;
