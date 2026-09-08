@@ -1,3 +1,4 @@
+import { NavigationFocusStore } from "./navigation-focus";
 import {
   installFlyovers,
   applyFlyoverSettings,
@@ -143,6 +144,7 @@ export default function App() {
   const container = useRef<HTMLDivElement>(null);
   const placeList = useRef<HTMLDivElement>(null);
   const map = useRef<AtlasMap | null>(null);
+  const navigation = useRef(new NavigationFocusStore());
   const markers = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const [mapError, setMapError] = useState("");
@@ -233,6 +235,7 @@ export default function App() {
         "visibility",
         s.terrainOn ? "visible" : "none",
       );
+    m.fire("atlas:settings");
   };
   useEffect(() => {
     if (!container.current) return;
@@ -259,16 +262,23 @@ export default function App() {
     }
     map.current = m;
     const removeFlyovers = watchFlyovers(m);
-    const removeLandmarkDetails = installLandmarkDetails(m, () => ({
-      height: config.current.height,
-      theme: config.current.theme,
-      visible: config.current.layers.buildings,
-    }));
+    const removeLandmarkDetails = installLandmarkDetails(
+      m,
+      () => ({
+        height: config.current.height,
+        theme: config.current.theme,
+        visible: config.current.layers.buildings,
+      }),
+      navigation.current,
+    );
     const removeTraffic = installTraffic(
       m,
       () => config.current.traffic && config.current.layers.roads,
     );
-    const removeMouseOrbit = installMouseOrbit(m, () => stopRef.current());
+    const removeMouseOrbit = installMouseOrbit(m, () => {
+      navigation.current.clear();
+      stopRef.current();
+    });
     m.addControl(
       new maplibregl.AttributionControl({ compact: true }),
       "bottom-right",
@@ -312,12 +322,15 @@ export default function App() {
         );
       if (!m.getLayer("detailed-place-models"))
         m.addLayer(
-          placeModelsLayer(() => ({
-            visible: config.current.layers.buildings,
-            height: config.current.height,
-            terrainOn: config.current.terrainOn,
-            theme: config.current.theme,
-          })),
+          placeModelsLayer(
+            () => ({
+              visible: config.current.layers.buildings,
+              height: config.current.height,
+              terrainOn: config.current.terrainOn,
+              theme: config.current.theme,
+            }),
+            navigation.current,
+          ),
           "water-labels",
         );
       if (!m.getLayer("buddha-statue"))
@@ -343,10 +356,56 @@ export default function App() {
         "Some map data could not load. Check your connection or retry the map.",
       );
     });
+    const recordTileReadiness = () => {
+      const focus = navigation.current.current;
+      const data = m.getContainer().dataset;
+      if (
+        focus &&
+        !m.isMoving() &&
+        m.areTilesLoaded() &&
+        !data.destinationTilesReadyMs
+      ) {
+        data.destinationTilesReadyMs = String(
+          performance.now() - focus.startedAt,
+        );
+        m.fire("atlas:tiles-ready");
+      }
+    };
     m.on("idle", () => {
       if (m.areTilesLoaded()) setMapError("");
+      recordTileReadiness();
+    });
+    m.on("sourcedata", recordTileReadiness);
+    let frameRevision = -1,
+      lastFrame = 0;
+    const frameGaps: number[] = [];
+    m.on("render", () => {
+      const focus = navigation.current.current;
+      if (!focus || !m.isMoving()) return;
+      const now = performance.now();
+      if (frameRevision !== focus.revision) {
+        frameRevision = focus.revision;
+        lastFrame = 0;
+        frameGaps.length = 0;
+      }
+      if (lastFrame) frameGaps.push(now - lastFrame);
+      lastFrame = now;
     });
     m.on("moveend", () => {
+      recordTileReadiness();
+      if (frameGaps.length) {
+        const sorted = [...frameGaps].sort((a, b) => a - b);
+        m.getContainer().dataset.navigationFrameP95Ms = String(
+          sorted[Math.floor((sorted.length - 1) * 0.95)],
+        );
+        m.getContainer().dataset.navigationFrameMaxMs = String(
+          sorted[sorted.length - 1],
+        );
+      }
+      if (navigation.current.current)
+        m.getContainer().dataset.destinationArrivalMs = String(
+          performance.now() - navigation.current.current.startedAt,
+        );
       const p = m.getCenter();
       setView({
         lat: p.lat,
@@ -357,7 +416,10 @@ export default function App() {
       });
     });
     m.on("movestart", (e) => {
-      if (e.originalEvent) stopRef.current();
+      if (e.originalEvent) {
+        navigation.current.clear();
+        stopRef.current();
+      }
     });
     m.getCanvas().addEventListener("webglcontextlost", () =>
       setMapError(
@@ -392,6 +454,7 @@ export default function App() {
       removeMouseOrbit();
       removeTraffic();
       removeLandmarkDetails();
+      navigation.current.clear();
       removeFlyovers();
       markers.current.forEach((marker) => marker.remove());
       m.remove();
@@ -440,7 +503,19 @@ export default function App() {
       el.setAttribute("aria-pressed", String(active));
     });
   }, [selected]);
-  function flyTo(place: Landmark) {
+  function flyTo(place: Landmark, next?: Landmark) {
+    const data = map.current?.getContainer().dataset;
+    if (data) {
+      data.destinationId = place.id;
+      delete data.destinationArrivalMs;
+      delete data.destinationTilesReadyMs;
+    }
+    navigation.current.select(
+      place,
+      window.innerWidth,
+      window.innerHeight,
+      next,
+    );
     playSound("page");
     setSelected(place);
     setMobilePlaces(false);
@@ -459,6 +534,7 @@ export default function App() {
     });
   }
   function stopTour() {
+    navigation.current.stopPrefetch();
     setPlaying(false);
   }
   stopRef.current = stopTour;
@@ -470,7 +546,7 @@ export default function App() {
   function visitCategory(index: number) {
     setCategoryIndex(index);
     setQuery("");
-    flyTo(tourStops[index]);
+    flyTo(tourStops[index], playing ? tourStops[index + 1] : undefined);
     setMobilePlaces(mobilePlaces);
     if (placeList.current) placeList.current.scrollTop = 0;
   }
@@ -488,6 +564,7 @@ export default function App() {
   function toggleTour() {
     if (playing) {
       playSound("droplet");
+      navigation.current.stopPrefetch();
       setPlaying(false);
       map.current?.stop();
     } else {
@@ -503,6 +580,7 @@ export default function App() {
     if (!playing) visitCategory(next);
   }
   function home() {
+    navigation.current.clear();
     playSound("page");
     stopTour();
     setTourIndex(-1);
@@ -514,6 +592,7 @@ export default function App() {
     });
   }
   function overview() {
+    navigation.current.clear();
     playSound("page");
     stopTour();
     setTourIndex(-1);
@@ -853,6 +932,7 @@ export default function App() {
           data-cuelume-toggle="tick"
           onClick={() => {
             stopTour();
+            navigation.current.clear();
             map.current?.easeTo({ bearing: 0, duration: 500 });
           }}
         >
@@ -868,6 +948,7 @@ export default function App() {
             data-cuelume-toggle="tick"
             onClick={() => {
               stopTour();
+              navigation.current.clear();
               map.current?.zoomIn();
             }}
           >
@@ -878,6 +959,7 @@ export default function App() {
             data-cuelume-toggle="tick"
             onClick={() => {
               stopTour();
+              navigation.current.clear();
               map.current?.zoomOut();
             }}
           >
@@ -890,6 +972,7 @@ export default function App() {
           }
           onClick={() => {
             stopTour();
+            navigation.current.clear();
             map.current?.easeTo({
               pitch: view.pitch > 10 ? 0 : 60,
               duration: 700,

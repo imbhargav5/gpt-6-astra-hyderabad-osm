@@ -1,3 +1,8 @@
+import {
+  NavigationFocusStore,
+  LatestQueue,
+  distanceMeters,
+} from "./navigation-focus";
 import { plainFeature } from "./spatial-stream";
 import { GeometryWorker } from "./geometry-worker-client";
 import { DETAIL_SOURCE, DETAIL_LAYERS } from "./landmark-geometry";
@@ -77,7 +82,11 @@ export function applyLandmarkDetailSettings(map: Map, settings: Settings) {
     }
 }
 
-export function installLandmarkDetails(map: Map, settings: () => Settings) {
+export function installLandmarkDetails(
+  map: Map,
+  settings: () => Settings,
+  navigation = new NavigationFocusStore(),
+) {
   const worker = new GeometryWorker();
   let removed = false,
     revision = 0;
@@ -86,6 +95,7 @@ export function installLandmarkDetails(map: Map, settings: () => Settings) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let dirty = true;
   const install = () => {
+    revision++;
     if (map.getSource(DETAIL_SOURCE)) return;
     map.addSource(DETAIL_SOURCE, {
       type: "geojson",
@@ -116,8 +126,9 @@ export function installLandmarkDetails(map: Map, settings: () => Settings) {
   };
   const rebuild = async () => {
     const current = revision;
-    timer = undefined;
-    if (!dirty || !map.getSource(DETAIL_SOURCE) || map.isMoving()) return;
+    if (!dirty || !map.getSource(DETAIL_SOURCE) || !settings().visible) return;
+    const focus = navigation.current;
+    const navigationRevision = navigation.revision;
     dirty = false;
     const buildings = map
       .querySourceFeatures("osm", { sourceLayer: "building" })
@@ -125,30 +136,72 @@ export function installLandmarkDetails(map: Map, settings: () => Settings) {
         (f) =>
           f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon",
       ) as Building[];
-    const previousCount = excludedIds.size;
+    const previousIds = [...excludedIds].join(",");
+    excludedIds.clear();
+    const uploadedModels = new Set(
+      (map.getContainer().dataset.detailedModels ?? "").split(","),
+    );
     for (const id of [
-      ...charminarReplacementIds(buildings),
+      ...(signature ? charminarReplacementIds(buildings) : []),
       ...buddhaReplacementIds(buildings),
-      ...placeReplacementIds(buildings, PLACE_MODELS),
+      ...placeReplacementIds(
+        buildings,
+        PLACE_MODELS.filter((model) => uploadedModels.has(model.id)),
+      ),
     ])
       excludedIds.add(id);
-    if (excludedIds.size !== previousCount)
+    if ([...excludedIds].join(",") !== previousIds)
       map.setFilter("buildings", [
         "all",
         ["!=", ["get", "hide_3d"], true],
         ["!", ["in", ["id"], ["literal", [...excludedIds]]]],
       ]);
     const data =
-      map.getZoom() >= 13
+      Math.max(map.getZoom(), focus?.zoom ?? 0) >= 13
         ? await worker.run<FeatureCollection<Polygon, { site: string }>>({
             kind: "architecture",
             buildings: buildings
               .filter((f) => !excludedIds.has(f.id!))
               .map(plainFeature),
-            center: map.getCenter().toArray(),
+            center: focus?.coordinates ?? map.getCenter().toArray(),
+            focus,
+            revision: navigationRevision,
           })
         : { type: "FeatureCollection" as const, features: [] };
-    if (removed || current !== revision || map.isMoving()) return;
+    if (
+      removed ||
+      current !== revision ||
+      navigationRevision !== navigation.revision
+    )
+      return;
+    if (focus) {
+      if (
+        data.features.some(
+          (feature) =>
+            feature.properties.site === focus.id ||
+            distanceMeters(
+              feature.geometry.coordinates[0][0],
+              focus.coordinates,
+            ) <= 500,
+        )
+      )
+        map.getContainer().dataset.destinationArchitectureReadyMs ??= String(
+          performance.now() - focus.startedAt,
+        );
+      if (
+        !map.isMoving() &&
+        (map.areTilesLoaded() ||
+          map.getContainer().dataset.destinationTilesReadyMs)
+      ) {
+        navigation.markReady(navigationRevision);
+        map.getContainer().dataset.destinationSurroundingsReadyMs ??= String(
+          performance.now() - focus.startedAt,
+        );
+      }
+      map.getContainer().dataset.destinationArchitectureRevision = String(
+        focus.revision,
+      );
+    }
     const next = JSON.stringify(data);
     if (next !== signature) {
       signature = next;
@@ -161,22 +214,45 @@ export function installLandmarkDetails(map: Map, settings: () => Settings) {
       ].join(",");
     }
   };
+  const queue = new LatestQueue<number>(
+    async () => {
+      await rebuild();
+    },
+    (error) => {
+      if (!removed) console.error("Architecture geometry failed", error);
+    },
+  );
   const schedule = () => {
-    revision++;
     dirty = true;
-    if (timer) clearTimeout(timer);
+    // Throttle rather than debounce: arriving tiles must not postpone work forever.
+    if (timer) return;
     timer = setTimeout(() => {
-      void rebuild().catch((error) => {
-        if (!removed) console.error("Architecture geometry failed", error);
-      });
+      timer = undefined;
+      queue.replace([revision]);
     }, 160);
   };
+  const unsubscribe = navigation.subscribe((reason) => {
+    if (reason === "ready") return;
+    revision++;
+    dirty = true;
+    delete map.getContainer().dataset.destinationArchitectureReadyMs;
+    delete map.getContainer().dataset.destinationSurroundingsReadyMs;
+    if (timer) clearTimeout(timer);
+    timer = undefined;
+    // Let the click handler start the camera before collecting tile footprints.
+    queueMicrotask(() => {
+      if (!removed) queue.replace([revision]);
+    });
+  });
   const source = (event: MapSourceDataEvent) => {
     if (event.sourceId === "osm") schedule();
   };
   map.on("style.load", install);
   map.on("sourcedata", source);
   map.on("moveend", schedule);
+  map.on("atlas:settings", schedule);
+  map.on("atlas:tiles-ready", schedule);
+  map.on("atlas:models-ready", schedule);
   const idle = () => {
     if (dirty && !timer) schedule();
   };
@@ -184,11 +260,16 @@ export function installLandmarkDetails(map: Map, settings: () => Settings) {
   return () => {
     removed = true;
     revision++;
+    unsubscribe();
+    queue.dispose();
     worker.dispose();
     if (timer) clearTimeout(timer);
     map.off("style.load", install);
     map.off("sourcedata", source);
     map.off("moveend", schedule);
+    map.off("atlas:settings", schedule);
+    map.off("atlas:tiles-ready", schedule);
+    map.off("atlas:models-ready", schedule);
     map.off("idle", idle);
   };
 }

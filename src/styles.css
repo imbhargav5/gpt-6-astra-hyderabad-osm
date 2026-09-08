@@ -137,8 +137,16 @@ a {
   padding: 9px 14px;
   border-radius: 4px;
   background: none;
-  font-size: 12px;
+  font-size: 15px;
   color: #71806d;
+}
+.top-actions svg {
+  width: 22px;
+  height: 22px;
+}
+.top-actions > .icon-button {
+  width: 40px;
+  height: 40px;
 }
 .mode-picker button[aria-pressed="true"] {
   background: var(--paper);
@@ -159,7 +167,7 @@ a {
 .explore-panel {
   position: absolute;
   top: 115px;
-  bottom: 60px;
+  max-height: calc(100% - 175px);
   left: 22px;
   width: 312px;
   border: 1px solid #ffffffa6;
@@ -291,7 +299,7 @@ h1 em {
 .place-list {
   overflow: auto;
   min-height: 60px;
-  flex: 1;
+  flex: 0 1 auto;
   margin: 0 -9px;
   padding: 0 9px;
   scrollbar-width: thin;
@@ -642,9 +650,10 @@ input[type="checkbox"] {
 }
 .place-detail {
   position: absolute;
-  bottom: 89px;
-  left: 365px;
-  right: 95px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
   max-width: 650px;
   background: var(--paper);
   border: 1px solid #dde2d4;
@@ -873,8 +882,7 @@ input[type="checkbox"] {
     width: 340px;
     padding: 30px 24px 0;
   }
-  .map-caption,
-  .place-detail {
+  .map-caption {
     left: 392px;
   }
   h1 {
@@ -921,8 +929,6 @@ input[type="checkbox"] {
     padding: 0 24px;
   }
   .place-detail {
-    left: 320px;
-    right: 78px;
     padding: 18px;
     gap: 14px;
   }
@@ -971,7 +977,7 @@ input[type="checkbox"] {
     display: none;
     top: 141px;
     left: 16px;
-    bottom: 65px;
+    max-height: calc(100% - 206px);
     width: 310px;
     z-index: 6;
   }
@@ -1004,8 +1010,6 @@ input[type="checkbox"] {
     left: 30px;
   }
   .place-detail {
-    left: 20px;
-    right: 74px;
     max-width: 600px;
   }
   .settings-panel {
@@ -1059,6 +1063,14 @@ input[type="checkbox"] {
   .top-actions {
     gap: 5px;
   }
+  .top-actions > .icon-button {
+    width: 28px;
+    height: 32px;
+  }
+  .top-actions > .icon-button svg {
+    width: 20px;
+    height: 20px;
+  }
   .mode-picker {
     padding: 3px;
   }
@@ -1069,8 +1081,8 @@ input[type="checkbox"] {
     display: none;
   }
   .mode-picker button svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
   }
   .info-button {
     width: 25px;
@@ -1097,7 +1109,7 @@ input[type="checkbox"] {
     left: 14px;
     right: 14px;
     width: auto;
-    bottom: 53px;
+    max-height: calc(100% - 189px);
     max-width: 350px;
     padding-top: 16px;
   }
@@ -1169,9 +1181,6 @@ input[type="checkbox"] {
     bottom: 33px;
   }
   .place-detail {
-    left: 13px;
-    right: 13px;
-    bottom: 111px;
     padding: 18px 17px;
     gap: 13px;
   }

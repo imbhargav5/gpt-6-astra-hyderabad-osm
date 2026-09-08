@@ -1,3 +1,9 @@
+import {
+  NavigationFocusStore,
+  LatestQueue,
+  detailPriority,
+  distanceMeters,
+} from "./navigation-focus";
 import { PLACE_MODELS } from "./place-geometry";
 import type { PlaceModel } from "./place-geometry";
 export { PLACE_MODELS, createPlaceModels } from "./place-geometry";
@@ -47,6 +53,7 @@ export function placeModelsLayer(
     visible: boolean;
     terrainOn: boolean;
   },
+  navigation = new NavigationFocusStore(),
 ): CustomLayerInterface {
   let gl: WebGL2RenderingContext,
     map: Map,
@@ -55,54 +62,121 @@ export function placeModelsLayer(
   const models = PLACE_MODELS;
   let worker: GeometryWorker;
   let removed = false;
-  const pending = new Set<string>();
+  let unsubscribe = () => {};
+  let frame = 0;
+  let finishUpload: (() => void) | undefined;
   const cache = new ResourceCache<{ buffer: WebGLBuffer; count: number }>(
     24 * 1024 * 1024,
     (entry) => gl.deleteBuffer(entry.buffer),
   );
   let active = new Set<string>();
+  let wanted = new Set<string>();
+  const queue = new LatestQueue<{ model: PlaceModel; revision: number }>(
+    async ({ model, revision }) => {
+      if (removed || cache.get(model.id) || !wanted.has(model.id)) return;
+      const mesh = await worker.run<Float32Array>({
+        kind: "place",
+        id: model.id,
+        revision,
+      });
+      if (removed || revision !== navigation.revision || !wanted.has(model.id))
+        return;
+      // Keep uploads out of promise bursts: one completed model per frame.
+      await new Promise<void>((resolve) => {
+        finishUpload = resolve;
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          finishUpload = undefined;
+          if (
+            !removed &&
+            revision === navigation.revision &&
+            wanted.has(model.id)
+          ) {
+            const buffer = gl.createBuffer()!;
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            cache.set(
+              model.id,
+              { buffer, count: mesh.length / 9 },
+              mesh.byteLength,
+              active,
+            );
+            map.getContainer().dataset.detailedModels = [...cache.keys()].join(
+              ",",
+            );
+            map.getContainer().dataset.modelCacheBytes = String(cache.bytes);
+            if (model.id === navigation.current?.id)
+              map.getContainer().dataset.destinationModelReadyMs = String(
+                performance.now() - navigation.current.startedAt,
+              );
+            map.fire("atlas:models-ready");
+            map.triggerRepaint();
+          }
+          resolve();
+        });
+      });
+    },
+    (error) => console.error("Place geometry failed", error),
+  );
   const refresh = () => {
     if (removed) return;
     const bounds = streamBounds(map.getBounds());
-    active = new Set(
-      settings().visible && map.getZoom() >= 13
-        ? models
-            .filter((m) => inStreamBounds(m.center, bounds))
-            .map((m) => m.id)
-        : [],
+    const focus = navigation.current;
+    const enabled =
+      settings().visible && (map.getZoom() >= 13 || (focus?.zoom ?? 0) >= 13);
+    const candidates = enabled
+      ? models.filter(
+          (m) =>
+            inStreamBounds(m.center, bounds) ||
+            (focus && detailPriority(m.id, m.center, focus) < 3),
+        )
+      : [];
+    candidates.sort(
+      (a, b) =>
+        detailPriority(a.id, a.center, focus) -
+          detailPriority(b.id, b.center, focus) ||
+        distanceMeters(
+          a.center,
+          focus?.coordinates ?? map.getCenter().toArray(),
+        ) -
+          distanceMeters(
+            b.center,
+            focus?.coordinates ?? map.getCenter().toArray(),
+          ),
     );
+    active = new Set(candidates.map((m) => m.id));
+    // Only the single next tour model is speculative, and always comes last.
+    const next =
+      enabled && navigation.readyForPrefetch && focus?.next
+        ? models.find((m) => m.id === focus.next!.id)
+        : undefined;
+    if (next && !active.has(next.id)) candidates.push(next);
+    wanted = new Set(candidates.map((m) => m.id));
     map.getContainer().dataset.activeModels = [...active].join(",");
-    for (const model of models) {
-      if (!active.has(model.id)) continue;
-      if (cache.get(model.id) || pending.has(model.id)) continue;
-      pending.add(model.id);
-      worker
-        .run<Float32Array>({ kind: "place", id: model.id })
-        .then((mesh) => {
-          pending.delete(model.id);
-          if (removed || !active.has(model.id)) return;
-          const buffer = gl.createBuffer()!;
-          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-          gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
-          gl.bindBuffer(gl.ARRAY_BUFFER, null);
-          cache.set(
-            model.id,
-            { buffer, count: mesh.length / 9 },
-            mesh.byteLength,
-            active,
-          );
-          map.getContainer().dataset.detailedModels = [...cache.keys()].join(
-            ",",
-          );
-          map.getContainer().dataset.modelCacheBytes = String(cache.bytes);
-          map.triggerRepaint();
-        })
-        .catch((error) => {
-          pending.delete(model.id);
-          if (!removed) console.error("Place geometry failed", error);
-        });
-    }
+    if (focus && cache.get(focus.id))
+      map.getContainer().dataset.destinationModelReadyMs ??= String(
+        performance.now() - focus.startedAt,
+      );
+    queue.replace(
+      candidates
+        .filter((m) => !cache.get(m.id))
+        .map((model) => ({ model, revision: navigation.revision })),
+    );
     cache.trim(active);
+    const cachedIds = [...cache.keys()].sort().join(",");
+    const previousIds = (map.getContainer().dataset.detailedModels ?? "")
+      .split(",")
+      .sort()
+      .join(",");
+    map.getContainer().dataset.detailedModels = cachedIds;
+    map.getContainer().dataset.modelCacheBytes = String(cache.bytes);
+    if (cachedIds !== previousIds) map.fire("atlas:models-ready");
+  };
+  const focusChanged = (reason: "focus" | "ready") => {
+    if (reason === "focus")
+      delete map.getContainer().dataset.destinationModelReadyMs;
+    refresh();
   };
   return {
     id: "detailed-place-models",
@@ -141,6 +215,9 @@ export function placeModelsLayer(
       vao = gl.createVertexArray()!;
       worker = new GeometryWorker();
       map.on("moveend", refresh);
+      map.on("atlas:settings", refresh);
+      map.on("move", refresh);
+      unsubscribe = navigation.subscribe(focusChanged);
       map.on("idle", refresh);
       refresh();
     },
@@ -212,6 +289,12 @@ export function placeModelsLayer(
     onRemove() {
       removed = true;
       map.off("moveend", refresh);
+      map.off("atlas:settings", refresh);
+      map.off("move", refresh);
+      unsubscribe();
+      queue.dispose();
+      if (frame) cancelAnimationFrame(frame);
+      finishUpload?.();
       map.off("idle", refresh);
       worker.dispose();
       cache.clear();

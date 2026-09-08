@@ -1,3 +1,4 @@
+import { detailPriority, type NavigationFocus } from "./navigation-focus";
 import { campusBoundaries, inCampus } from "./campus-surfaces";
 import { campusProfiles, type CampusProfile } from "./campus-sites";
 import { charminarModel } from "./charminar";
@@ -58,6 +59,7 @@ function area(ring: Position[]) {
 export function buildLandmarkDetails(
   buildings: Building[],
   focus?: Position,
+  navigation?: NavigationFocus,
 ): FeatureCollection<Polygon, Detail["properties"]> {
   const features: Detail[] = [...charminarModel().features];
   const seen = new Set<string>();
@@ -158,7 +160,13 @@ export function buildLandmarkDetails(
           (b.anchor[1] - focus[1]) * METERS_LAT,
         )
       : b.distance;
-  candidates.sort((a, b) => priority(a) - priority(b));
+  candidates.sort(
+    (a, b) =>
+      (navigation
+        ? detailPriority(a.site, a.anchor, navigation) -
+          detailPriority(b.site, b.anchor, navigation)
+        : 0) || priority(a) - priority(b),
+  );
   for (const b of candidates.slice(0, MAX_BUILDINGS)) {
     if (features.length >= MAX_DETAILS) break;
     const { height: h, base, style, rings, anchor, mx, site } = b;

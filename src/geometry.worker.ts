@@ -7,7 +7,7 @@ self.onmessage = ({ data: { sequence, job } }) => {
     if (job.kind === "place")
       result = createPlaceModels().find((model) => model.id === job.id)!.mesh;
     else if (job.kind === "architecture")
-      result = buildLandmarkDetails(job.buildings, job.center);
+      result = buildLandmarkDetails(job.buildings, job.center, job.focus);
     else if (job.kind === "flyover") {
       const elevations = new Map<string, number | null>(job.elevations);
       result = createFlyoverMesh(
