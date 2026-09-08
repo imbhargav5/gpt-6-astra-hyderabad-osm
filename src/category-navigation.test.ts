@@ -30,11 +30,11 @@ describe("category navigation", () => {
     });
   });
   it("wraps in both directions without a boundary pause", () => {
-    expect(categoryShortcut("ArrowDown", 9, true)).toBe(0);
-    expect(categoryShortcut("ArrowUp", 0, true)).toBe(9);
+    expect(categoryShortcut("ArrowRight", 9)).toBe(0);
+    expect(categoryShortcut("ArrowLeft", 0)).toBe(9);
     let active = 0;
     for (let i = 0; i < 31; i++)
-      active = categoryShortcut("ArrowDown", active, true)!;
+      active = categoryShortcut("ArrowRight", active)!;
     expect(active).toBe(1);
     expect(wrapCategory(-21)).toBe(9);
   });
@@ -44,10 +44,6 @@ describe("category navigation", () => {
     expect(categoryShortcut("5", 0)).toBe(4);
     expect(categoryShortcut("0", 0)).toBe(9);
     expect(categoryShortcut("ArrowUp", 3)).toBeNull();
-    expect(categoryShortcut("ArrowDown", 3)).toBeNull();
-    expect(categoryShortcut("ArrowLeft", 3)).toBeNull();
-    expect(categoryShortcut("ArrowRight", 3)).toBeNull();
-    expect(categoryShortcut("5", 3, true)).toBeNull();
     expect(categoryShortcut("a", 3)).toBeNull();
   });
 });

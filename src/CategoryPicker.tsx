@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { placeCategories, type Category } from "./place-categories";
 import { categoryShortcut, wrapCategory } from "./category-navigation";
 
@@ -21,7 +21,8 @@ export function CategoryPicker({
         event.isComposing ||
         event.altKey ||
         event.ctrlKey ||
-        event.metaKey
+        event.metaKey ||
+        event.shiftKey
       )
         return;
       const target = event.target;
@@ -34,11 +35,11 @@ export function CategoryPicker({
         return;
       const inTabs = target instanceof Node && tabs.current?.contains(target);
       const next =
-        inTabs && !event.shiftKey && event.key === "Home"
+        inTabs && event.key === "Home"
           ? 0
-          : inTabs && !event.shiftKey && event.key === "End"
+          : inTabs && event.key === "End"
             ? placeCategories.length - 1
-            : categoryShortcut(event.key, active, event.shiftKey);
+            : categoryShortcut(event.key, active);
       if (next === null) return;
       event.preventDefault();
       event.stopPropagation();
@@ -50,45 +51,40 @@ export function CategoryPicker({
   }, [active, onChange]);
 
   const initialized = useRef(false);
-  const userScrolling = useRef(false);
-  const activeRef = useRef(active);
-  const onChangeRef = useRef(onChange);
-  activeRef.current = active;
-  onChangeRef.current = onChange;
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function normalizeScroll() {
     const row = tabs.current;
     if (!row) return;
     const groups = row.querySelectorAll<HTMLElement>(".category-tab-cycle");
-    const height = groups[1].offsetTop - groups[0].offsetTop;
-    if (!height) return;
+    const width = groups[1].offsetLeft - groups[0].offsetLeft;
+    if (!width) return;
     // All five copies are identical: move back to the middle without changing
     // the visible pixels, keeping a full runway in both directions.
-    const center = row.scrollTop + row.clientHeight / 2;
-    const cycle = Math.floor((center - groups[0].offsetTop) / height);
-    if (cycle !== 2) row.scrollTop += (2 - cycle) * height;
+    const center = row.scrollLeft + row.clientWidth / 2;
+    const cycle = Math.floor((center - groups[0].offsetLeft) / width);
+    if (cycle !== 2) row.scrollLeft += (2 - cycle) * width;
   }
 
   useLayoutEffect(() => {
     const row = tabs.current;
     const button = buttons.current[active];
-    if (!row || !button || userScrolling.current) return;
+    if (!row || !button) return;
     normalizeScroll();
     const groups = row.querySelectorAll<HTMLElement>(".category-tab-cycle");
-    const height = groups[1].offsetTop - groups[0].offsetTop;
+    const width = groups[1].offsetLeft - groups[0].offsetLeft;
     const canonical =
-      groups[2].offsetTop +
-      button.offsetTop -
-      row.clientHeight / 2 +
-      button.offsetHeight / 2;
+      groups[2].offsetLeft +
+      button.offsetLeft -
+      row.clientWidth / 2 +
+      button.offsetWidth / 2;
     const target =
-      canonical + Math.round((row.scrollTop - canonical) / height) * height;
+      canonical + Math.round((row.scrollLeft - canonical) / width) * width;
     const reduce = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     row.scrollTo({
-      top: initialized.current ? target : canonical,
+      left: initialized.current ? target : canonical,
       behavior: !initialized.current || reduce ? "instant" : "smooth",
     });
     initialized.current = true;
@@ -97,52 +93,17 @@ export function CategoryPicker({
   useEffect(() => {
     const row = tabs.current;
     if (!row) return;
-    const beginSwipe = () => {
-      userScrolling.current = true;
-    };
     const onScroll = () => {
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
       const groups = row.querySelectorAll<HTMLElement>(".category-tab-cycle");
-      const height = groups[1].offsetTop - groups[0].offsetTop;
-      if (row.scrollTop < height / 2 || row.scrollTop > height * 3.5)
+      const width = groups[1].offsetLeft - groups[0].offsetLeft;
+      if (row.scrollLeft < width / 2 || row.scrollLeft > width * 3.5)
         normalizeScroll();
-      if (userScrolling.current) {
-        const center = row.scrollTop + row.clientHeight / 2;
-        let closest = activeRef.current;
-        let distance = Infinity;
-        groups.forEach((group) => {
-          [
-            ...group.querySelectorAll<HTMLButtonElement>("[role='tab']"),
-          ].forEach((button, index) => {
-            const delta = Math.abs(
-              group.offsetTop +
-                button.offsetTop +
-                button.offsetHeight / 2 -
-                center,
-            );
-            if (delta < distance) {
-              distance = delta;
-              closest = index;
-            }
-          });
-        });
-        if (closest !== activeRef.current) {
-          activeRef.current = closest;
-          onChangeRef.current(closest);
-        }
-      }
-      scrollTimer.current = setTimeout(() => {
-        userScrolling.current = false;
-        normalizeScroll();
-      }, 180);
+      scrollTimer.current = setTimeout(normalizeScroll, 150);
     };
     row.addEventListener("scroll", onScroll, { passive: true });
-    row.addEventListener("wheel", beginSwipe, { passive: true });
-    row.addEventListener("touchstart", beginSwipe, { passive: true });
     return () => {
       row.removeEventListener("scroll", onScroll);
-      row.removeEventListener("wheel", beginSwipe);
-      row.removeEventListener("touchstart", beginSwipe);
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
     };
   }, []);
@@ -150,27 +111,23 @@ export function CategoryPicker({
   return (
     <section className="category-picker" aria-label="Browse categories">
       <div className="category-heading">
-        <span>
-          CATEGORIES <small>{active + 1} / 10</small>
-        </span>
+        <span>Browse categories</span>
         <div>
           <button
             type="button"
             aria-label="Previous category"
-            title="Previous category (Shift + ↑)"
-            aria-keyshortcuts="Shift+ArrowUp"
+            title="Previous category (←)"
             onClick={() => onChange(wrapCategory(active - 1))}
           >
-            <ChevronUp size={15} />
+            <ChevronLeft size={15} />
           </button>
           <button
             type="button"
             aria-label="Next category"
-            title="Next category (Shift + ↓)"
-            aria-keyshortcuts="Shift+ArrowDown"
+            title="Next category (→)"
             onClick={() => onChange(wrapCategory(active + 1))}
           >
-            <ChevronDown size={15} />
+            <ChevronRight size={15} />
           </button>
         </div>
       </div>
@@ -179,7 +136,7 @@ export function CategoryPicker({
         className="category-tabs"
         role="tablist"
         aria-label="Place categories"
-        aria-orientation="vertical"
+        aria-orientation="horizontal"
       >
         {[0, 1, 2, 3, 4].map((cycle) => (
           <div
@@ -200,7 +157,7 @@ export function CategoryPicker({
                 aria-selected={active === index}
                 aria-controls="category-places"
                 aria-keyshortcuts={String((index + 1) % 10)}
-                title={`Press ${(index + 1) % 10} to select ${category}`}
+                title={`Press ${(index + 1) % 10} for ${category} · ${counts[category]} places`}
                 tabIndex={cycle === 2 && active === index ? 0 : -1}
                 onMouseDown={(event) => {
                   if (cycle !== 2) event.preventDefault();
@@ -209,16 +166,11 @@ export function CategoryPicker({
               >
                 <kbd>NUM {(index + 1) % 10}</kbd>
                 <span>{category}</span>
-                <small>{counts[category]}</small>
               </button>
             ))}
           </div>
         ))}
       </div>
-      <p className="category-hint">
-        <span>Shift + ↑ ↓ categories</span>
-        <span>↑ ↓ places</span>
-      </p>
     </section>
   );
 }

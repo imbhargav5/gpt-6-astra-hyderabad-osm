@@ -31,6 +31,7 @@ import {
   Shield,
   House,
   Landmark as HeritageIcon,
+  ArrowDownLeft,
   ArrowRight,
   BookOpen,
   Building2,
@@ -50,6 +51,7 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Search,
   Share2,
   SlidersHorizontal,
   Sun,
@@ -60,7 +62,12 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { landmarks, tourStops, type Landmark } from "./landmarks";
+import {
+  landmarks,
+  searchLandmarks,
+  tourStops,
+  type Landmark,
+} from "./landmarks";
 import {
   buildingHeight,
   createStyle,
@@ -140,6 +147,13 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [mapError, setMapError] = useState("");
   const [theme, setTheme] = useState<Theme>(savedSettings.theme);
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchToggle = useRef<HTMLButtonElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (searchOpen) searchInput.current?.focus({ preventScroll: true });
+  }, [searchOpen]);
   const [categoryIndex, setCategoryIndex] = useState(0);
   const category = placeCategories[categoryIndex];
   const [selected, setSelected] = useState<Landmark | null>(null);
@@ -429,7 +443,7 @@ export default function App() {
   function flyTo(place: Landmark) {
     playSound("page");
     setSelected(place);
-    if (window.innerWidth <= 900) setMobilePlaces(true);
+    setMobilePlaces(false);
     map.current?.flyTo({
       center: place.coordinates,
       zoom: place.zoom,
@@ -455,7 +469,9 @@ export default function App() {
   };
   function visitCategory(index: number) {
     setCategoryIndex(index);
+    setQuery("");
     flyTo(tourStops[index]);
+    setMobilePlaces(mobilePlaces);
     if (placeList.current) placeList.current.scrollTop = 0;
   }
   flightRef.current = () => visitCategory(tourIndex);
@@ -478,7 +494,7 @@ export default function App() {
       if (tourIndex < 0 || tourIndex === tourStops.length - 1) setTourIndex(0);
       setPlaying(true);
       setPanel(null);
-      if (window.innerWidth <= 900) setMobilePlaces(true);
+      setMobilePlaces(false);
     }
   }
   function stepTour(delta: number) {
@@ -547,7 +563,7 @@ export default function App() {
       setMapError("Copy the URL from your address bar to share this map view.");
     }
   }
-  const results = landmarks.filter((place) => place.category === category);
+  const results = searchLandmarks(query, category);
   useEffect(() => {
     function navigatePlaces(event: KeyboardEvent) {
       if (
@@ -665,22 +681,91 @@ export default function App() {
         className={`explore-panel ${mobilePlaces ? "mobile-open" : ""}`}
         aria-label="Explore places"
       >
-        <button
-          className="mobile-close icon-button"
-          aria-label="Close places"
-          data-cuelume-toggle="droplet"
-          onClick={() => setMobilePlaces(false)}
+        <div className="explore-heading">
+          <div>
+            <h1>Explore the city</h1>
+            <p>
+              {landmarks.length} places · {placeCategories.length} categories
+            </p>
+          </div>
+          <div className="explore-actions">
+            <button
+              ref={searchToggle}
+              className="icon-button search-toggle"
+              aria-label={searchOpen ? "Close search" : "Open search"}
+              title={searchOpen ? "Close search" : "Search places"}
+              aria-expanded={searchOpen}
+              aria-controls="place-search"
+              onClick={() => {
+                setSearchOpen(!searchOpen);
+                if (searchOpen) setQuery("");
+                playSound(searchOpen ? "droplet" : "bloom");
+              }}
+            >
+              <Search size={17} />
+            </button>
+            <span className="explore-action-divider" aria-hidden="true" />
+            <button
+              className="tour-button"
+              disabled={!ready}
+              onClick={toggleTour}
+              aria-label={
+                playing ? "Pause the city tour" : "Take the city tour"
+              }
+              title={
+                playing
+                  ? "Pause the city tour"
+                  : "Tour the first place in every category"
+              }
+            >
+              {playing ? <Pause size={14} /> : <Play size={14} />}
+              <span>{playing ? "Pause" : "Tour"}</span>
+            </button>
+          </div>
+          <button
+            className="mobile-close icon-button"
+            aria-label="Close places"
+            data-cuelume-toggle="droplet"
+            onClick={() => setMobilePlaces(false)}
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div
+          className="search-reveal"
+          data-open={searchOpen}
+          inert={!searchOpen}
+          aria-hidden={!searchOpen}
         >
-          <X size={18} />
-        </button>
-        <button className="tour-button" disabled={!ready} onClick={toggleTour}>
-          {playing ? (
-            <Pause size={17} fill="currentColor" />
-          ) : (
-            <Play size={17} fill="currentColor" />
-          )}
-          <span>{playing ? "Pause the city tour" : "Take the city tour"}</span>
-        </button>
+          <div className="search-reveal-inner">
+            <label className="search-box" id="place-search">
+              <Search size={17} />
+              <input
+                ref={searchInput}
+                value={query}
+                onKeyDown={(event) => {
+                  if (event.key !== "Escape") return;
+                  event.preventDefault();
+                  setSearchOpen(false);
+                  setQuery("");
+                  searchToggle.current?.focus();
+                }}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find a landmark or neighbourhood"
+                aria-label="Search places"
+              />
+              {query && (
+                <button
+                  data-cuelume-toggle="droplet"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </label>
+          </div>
+        </div>
         <CategoryPicker
           active={categoryIndex}
           counts={
@@ -698,76 +783,8 @@ export default function App() {
             visitCategory(index);
           }}
         />
-        {selected && (
-          <section className="place-detail" aria-label="Selected place">
-            <div className="detail-heading">
-              <PlaceAvatar key={selected.id} place={selected} large />
-              <div className="detail-number">
-                {String(landmarks.indexOf(selected) + 1).padStart(2, "0")}
-                <span>/ {landmarks.length}</span>
-              </div>
-            </div>
-            <div className="detail-content">
-              <span className="eyebrow">
-                {selected.category} <span>·</span> {selected.area}
-              </span>
-              <h2>{selected.name}</h2>
-              <p>{selected.description}</p>
-              {tourIndex >= 0 && (
-                <div className="tour-progress">
-                  <button
-                    aria-label="Previous tour stop"
-                    disabled={tourIndex === 0}
-                    onClick={() => stepTour(-1)}
-                  >
-                    <ChevronLeft size={17} />
-                  </button>
-                  <button
-                    onClick={toggleTour}
-                    aria-label={playing ? "Pause tour" : "Resume tour"}
-                  >
-                    {playing ? <Pause size={15} /> : <Play size={15} />}
-                  </button>
-                  <span>
-                    {tourIndex + 1} of {tourStops.length}{" "}
-                    <span className="muted">
-                      · {playing ? "Tour in progress" : "Tour paused"}
-                    </span>
-                  </span>
-                  <div className="tour-dots">
-                    {tourStops.map((p, i) => (
-                      <span
-                        key={p.id}
-                        className={i <= tourIndex ? "filled" : ""}
-                      />
-                    ))}
-                  </div>
-                  <button
-                    aria-label="Next tour stop"
-                    disabled={tourIndex === tourStops.length - 1}
-                    onClick={() => stepTour(1)}
-                  >
-                    <ChevronRight size={17} />
-                  </button>
-                </div>
-              )}
-            </div>
-            <button
-              className="icon-button close-detail"
-              aria-label="Close place details"
-              data-cuelume-toggle="droplet"
-              onClick={() => {
-                stopTour();
-                setSelected(null);
-                setTourIndex(-1);
-              }}
-            >
-              <X size={16} />
-            </button>
-          </section>
-        )}
         <div className="results-count" aria-live="polite">
-          <span>{category}</span>
+          <span>Places</span>
           <span>
             {results.length} {results.length === 1 ? "place" : "places"}
           </span>
@@ -795,11 +812,31 @@ export default function App() {
               <ArrowRight size={15} />
             </button>
           ))}
+          {results.length === 0 && (
+            <div className="empty-state">
+              <Search size={24} />
+              <strong>No places found</strong>
+              <p>Try another search or use → for the next category.</p>
+              <button
+                onClick={() => {
+                  setQuery("");
+                }}
+              >
+                Clear search
+              </button>
+            </div>
+          )}
         </div>
-        <div className="sidebar-footer">
-          <span className="tiny-compass">↗</span>
-          <span>17.3850° N &nbsp; 78.4867° E</span>
-          <span>INDIA</span>
+        <div
+          className="sidebar-footer keyboard-footer"
+          aria-label="Keyboard shortcuts"
+        >
+          <span>
+            <kbd>← →</kbd> Categories
+          </span>
+          <span>
+            <kbd>↑ ↓</kbd> Places
+          </span>
         </div>
       </aside>
       <button
@@ -807,7 +844,7 @@ export default function App() {
         data-cuelume-toggle={mobilePlaces ? "droplet" : "bloom"}
         onClick={() => setMobilePlaces(!mobilePlaces)}
       >
-        <MapPin size={17} /> Explore Hyderabad
+        <Search size={17} /> Explore Hyderabad
       </button>
       <nav className="map-controls" aria-label="Map controls">
         <button
@@ -1098,15 +1135,6 @@ export default function App() {
               </p>
               <h3>A few things to know</h3>
               <p>
-                <a
-                  href={`${import.meta.env.BASE_URL}places/credits.html`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Place photo credits
-                </a>
-              </p>
-              <p>
                 Building coverage and heights vary. Missing heights use a 9 m
                 fallback; the provider may also estimate heights. Default
                 building and terrain exaggeration are ×2 and ×2.5. Landmark
@@ -1131,9 +1159,9 @@ export default function App() {
                 In 3D, left-drag to orbit and tilt. Right-drag, Shift +
                 left-drag, or Space + left-drag to pan. In 2D, left-drag also
                 pans. Scroll or pinch to zoom; use two fingers to rotate and
-                tilt. Use 1–9 and 0 to jump between categories, Shift + ↑ / ↓ to
-                cycle categories, and ↑ / ↓ to select places and fly to them.
-                Map keyboard controls support + / − and Shift + arrows. The URL
+                tilt. Use 1–9 and 0 to jump between categories, ← / → to cycle
+                categories, and ↑ / ↓ to select places and fly to them. Map
+                keyboard controls support + / − and Shift + arrows. The URL
                 preserves your camera view.
               </p>
               <div className="source-badge">
@@ -1142,6 +1170,85 @@ export default function App() {
             </div>
           )}
         </section>
+      )}
+      {selected ? (
+        <section className="place-detail" aria-label="Selected place">
+          <div className="detail-heading">
+            <PlaceAvatar key={selected.id} place={selected} large />
+            <div className="detail-number">
+              {String(landmarks.indexOf(selected) + 1).padStart(2, "0")}
+              <span>/ {landmarks.length}</span>
+            </div>
+          </div>
+          <div className="detail-content">
+            <span className="eyebrow">
+              {selected.category} <span>·</span> {selected.area}
+            </span>
+            <h2>{selected.name}</h2>
+            <p>{selected.description}</p>
+            {tourIndex >= 0 && (
+              <div className="tour-progress">
+                <button
+                  aria-label="Previous tour stop"
+                  disabled={tourIndex === 0}
+                  onClick={() => stepTour(-1)}
+                >
+                  <ChevronLeft size={17} />
+                </button>
+                <button
+                  onClick={toggleTour}
+                  aria-label={playing ? "Pause tour" : "Resume tour"}
+                >
+                  {playing ? <Pause size={15} /> : <Play size={15} />}
+                </button>
+                <span>
+                  {tourIndex + 1} of {tourStops.length}{" "}
+                  <span className="muted">
+                    · {playing ? "Tour in progress" : "Tour paused"}
+                  </span>
+                </span>
+                <div className="tour-dots">
+                  {tourStops.map((p, i) => (
+                    <span
+                      key={p.id}
+                      className={i <= tourIndex ? "filled" : ""}
+                    />
+                  ))}
+                </div>
+                <button
+                  aria-label="Next tour stop"
+                  disabled={tourIndex === tourStops.length - 1}
+                  onClick={() => stepTour(1)}
+                >
+                  <ChevronRight size={17} />
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            className="icon-button close-detail"
+            aria-label="Close place details"
+            data-cuelume-toggle="droplet"
+            onClick={() => {
+              stopTour();
+              setSelected(null);
+              setTourIndex(-1);
+            }}
+          >
+            <X size={16} />
+          </button>
+        </section>
+      ) : (
+        <div className="map-caption">
+          <span className="caption-rule" />
+          <div>
+            <span className="eyebrow">A NEW PERSPECTIVE</span>
+            <p>
+              The familiar, <em>rediscovered.</em>
+            </p>
+          </div>
+          <ArrowDownLeft size={27} strokeWidth={1} />
+        </div>
       )}
       <footer className="bottom-bar">
         <div>

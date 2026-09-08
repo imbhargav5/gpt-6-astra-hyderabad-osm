@@ -7,14 +7,9 @@ export function wrapCategory(index: number) {
   );
 }
 
-export function categoryShortcut(
-  key: string,
-  current: number,
-  shift = false,
-): number | null {
-  if (shift && key === "ArrowDown") return wrapCategory(current + 1);
-  if (shift && key === "ArrowUp") return wrapCategory(current - 1);
-  if (shift) return null;
+export function categoryShortcut(key: string, current: number): number | null {
+  if (key === "ArrowRight") return wrapCategory(current + 1);
+  if (key === "ArrowLeft") return wrapCategory(current - 1);
   return /^[0-9]$/.test(key) ? wrapCategory(Number(key) - 1) : null;
 }
 
