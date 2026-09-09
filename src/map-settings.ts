@@ -10,8 +10,8 @@ export interface MapSettings {
 }
 const defaults = (): MapSettings => ({
   theme: "day",
-  height: 2,
-  terrain: 2.5,
+  height: 1.5,
+  terrain: 1.5,
   terrainOn: true,
   traffic: true,
   layers: {

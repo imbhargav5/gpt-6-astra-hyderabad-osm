@@ -1,3 +1,9 @@
+import {
+  environment,
+  lightDirection,
+  hazeGLSL,
+  applyAtmosphere,
+} from "./environment";
 import { GeometryWorker } from "./geometry-worker-client";
 import { ResourceCache, streamBounds } from "./spatial-stream";
 import {
@@ -185,12 +191,14 @@ export function flyoverMeshLayer(
       const v = shader(
         gl.VERTEX_SHADER,
         `#version 300 es
-  precision highp float;in vec3 a_pos;in vec3 a_normal;in vec3 a_color;uniform mat4 u_matrix;out vec3 v_normal;out vec3 v_color;void main(){gl_Position=u_matrix*vec4(a_pos,1.);v_normal=a_normal;v_color=a_color;}`,
+  precision highp float;in vec3 a_pos;in vec3 a_normal;in vec3 a_color;uniform mat4 u_matrix;out vec3 v_normal;out vec3 v_color;out float v_depth;void main(){gl_Position=u_matrix*vec4(a_pos,1.);v_normal=a_normal;v_color=a_color;v_depth=gl_Position.w;}`,
       );
       const f = shader(
         gl.FRAGMENT_SHADER,
         `#version 300 es
-  precision highp float;in vec3 v_normal;in vec3 v_color;uniform vec3 u_tint;out vec4 fragColor;void main(){float light=.48+.52*max(0.,dot(normalize(v_normal),normalize(vec3(-.6,.8,1.2))));fragColor=vec4(v_color*u_tint*light,1.);}`,
+  precision highp float;in vec3 v_normal;in vec3 v_color;in float v_depth;uniform vec3 u_tint;uniform vec3 u_light;out vec4 fragColor;
+  ${hazeGLSL}
+  void main(){float light=.6+.4*max(0.,dot(normalize(v_normal),normalize(u_light)));fragColor=vec4(atmosphere(v_color*u_tint*light,v_depth),1.);}`,
       );
       program = gl.createProgram()!;
       gl.attachShader(program, v);
@@ -226,12 +234,13 @@ export function flyoverMeshLayer(
       );
       gl.uniform3fv(
         gl.getUniformLocation(program, "u_tint"),
-        state.settings.theme === "night"
-          ? [0.58, 0.74, 0.73]
-          : state.settings.theme === "sunset"
-            ? [1, 0.89, 0.74]
-            : [1, 1, 1],
+        environment[state.settings.theme].tint,
       );
+      gl.uniform3fv(
+        gl.getUniformLocation(program, "u_light"),
+        lightDirection(state.settings.theme),
+      );
+      applyAtmosphere(gl, program, state.settings.theme, args.farZ);
       const previous = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
       gl.bindVertexArray(vao);
       gl.enable(gl.DEPTH_TEST);

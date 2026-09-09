@@ -68,3 +68,36 @@ export function patchNoise(x: number, y: number): number {
   const b = seededCell(ix, iy + 1) * (1 - fx) + seededCell(ix + 1, iy + 1) * fx;
   return a * (1 - fy) + b * fy;
 }
+
+/** Broad, faceted canopy: twelve triangles, independent of camera and theme. */
+export function canopyTriangles(
+  height: number,
+  radius: number,
+  trunk: number,
+  seed: number,
+): [number, number, number][] {
+  const phase = seed * Math.PI * 2;
+  const ring = Array.from({ length: 6 }, (_, i): [number, number, number] => {
+    const angle = phase + (i * Math.PI) / 3;
+    const width = radius * (0.9 + 0.15 * Math.sin(i * 2.3 + seed * 8));
+    return [
+      Math.cos(angle) * width,
+      Math.sin(angle) * width,
+      trunk + (height - trunk) * (0.42 + 0.08 * seed),
+    ];
+  });
+  const top: [number, number, number] = [
+    radius * 0.12 * Math.cos(phase),
+    radius * 0.12 * Math.sin(phase),
+    height,
+  ];
+  const bottom: [number, number, number] = [0, 0, trunk];
+  return ring.flatMap((a, i) => [
+    top,
+    a,
+    ring[(i + 1) % 6],
+    bottom,
+    ring[(i + 1) % 6],
+    a,
+  ]);
+}

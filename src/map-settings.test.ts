@@ -27,7 +27,7 @@ describe("saved map preferences", () => {
     expect(readMapSettings(storage)).toEqual(preferences);
   });
   it("falls back safely for malformed, partial and out-of-range values", () => {
-    expect(readMapSettings({ getItem: () => "{bad" }).height).toBe(2);
+    expect(readMapSettings({ getItem: () => "{bad" }).height).toBe(1.5);
     const restored = readMapSettings({
       getItem: () =>
         JSON.stringify({
@@ -37,8 +37,8 @@ describe("saved map preferences", () => {
           layers: { water: false, roads: "false" },
         }),
     });
-    expect(restored.height).toBe(2);
-    expect(restored.terrain).toBe(2.5);
+    expect(restored.height).toBe(1.5);
+    expect(restored.terrain).toBe(1.5);
     expect(restored.theme).toBe("day");
     expect(restored.layers.water).toBe(false);
     expect(restored.layers.roads).toBe(true);
@@ -49,7 +49,7 @@ describe("saved map preferences", () => {
         throw new Error("blocked");
       },
     });
-    expect(settings.height).toBe(2);
+    expect(settings.height).toBe(1.5);
     expect(() =>
       writeMapSettings(settings, {
         setItem: () => {

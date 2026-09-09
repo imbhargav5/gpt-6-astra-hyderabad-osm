@@ -1,3 +1,5 @@
+import { lightDirection, hazeGLSL, applyAtmosphere } from "./environment";
+import { canopyTriangles } from "./forest-geometry";
 import {
   MercatorCoordinate,
   type CustomLayerInterface,
@@ -59,9 +61,7 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
     buffer: WebGLBuffer,
     vao: WebGLVertexArrayObject;
   let matrixUniform: WebGLUniformLocation | null,
-    colorUniform: WebGLUniformLocation | null,
-    fogUniform: WebGLUniformLocation | null,
-    fogRangeUniform: WebGLUniformLocation | null;
+    colorUniform: WebGLUniformLocation | null;
   let shadowVertices = 0;
   let vertices = 0,
     dirty = true,
@@ -226,14 +226,14 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
               pz = p.z;
             const scale = s.height * Math.min(stride, 3);
             const height =
-                (8 + seededCell(x + 19, y - 37) * 17) * scale * units,
-              radius = (2.5 + seededCell(x - 29, y + 13) * 3.4) * scale * units,
+                (7 + seededCell(x + 19, y - 37) * 10) * scale * units,
+              radius = (3.3 + seededCell(x - 29, y + 13) * 3.1) * scale * units,
               trunk = (1.4 + random) * scale * units;
             tint = seededCell(x + 79, y - 53);
             // Ground-following contact shadows anchor the canopy without a flat floating disc.
             const groundRadius = radius / units;
-            const shadowPoints = Array.from({ length: 10 }, (_, i) => {
-              const angle = (i * Math.PI) / 5;
+            const shadowPoints = Array.from({ length: 8 }, (_, i) => {
+              const angle = (i * Math.PI) / 4;
               const dx = Math.cos(angle) * groundRadius,
                 dy = Math.sin(angle) * groundRadius;
               const ll: [number, number] = [
@@ -248,7 +248,7 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
               );
               return [merc.x - origin.x, merc.y - origin.y, merc.z];
             });
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 8; i++) {
               shadows.push(
                 px,
                 py,
@@ -260,44 +260,27 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
                 0,
                 2,
                 0,
-                ...shadowPoints[(i + 1) % 10],
+                ...shadowPoints[(i + 1) % 8],
                 0,
                 2,
                 0,
               );
             }
-            const phase = random * Math.PI * 2;
-            for (let side = 0; side < 6; side++) {
-              const a = phase + (side * Math.PI) / 3,
-                b = a + Math.PI / 3;
-              const shade = 0.72 + (0.34 * (Math.cos(a - 2.5) + 1)) / 2;
-              vertex(
-                px + Math.cos(phase) * radius * 0.12,
-                py + Math.sin(phase) * radius * 0.12,
-                pz + height,
-                shade,
-              );
-              vertex(
-                px + Math.cos(a) * radius,
-                py + Math.sin(a) * radius,
-                pz + trunk,
-                shade,
-              );
-              vertex(
-                px + Math.cos(b) * radius,
-                py + Math.sin(b) * radius,
-                pz + trunk,
-                shade,
-              );
-            }
-            const r = 0.5 * scale * units;
-            for (let side = 0; side < 4; side++) {
-              const a = (side * Math.PI) / 2,
-                b = a + Math.PI / 2;
+            for (const [dx, dy, dz] of canopyTriangles(
+              height,
+              radius,
+              trunk,
+              random,
+            ))
+              vertex(px + dx, py + dy, pz + dz, 1);
+            // Two crossed trunk planes; foliage + trunk + shadow remain 24 triangles/tree.
+            const r = 0.45 * scale * units;
+            for (let side = 0; side < 2; side++) {
+              const a = random * Math.PI + (side * Math.PI) / 2;
               const ax = px + Math.cos(a) * r,
-                ay = py + Math.sin(a) * r,
-                bx = px + Math.cos(b) * r,
-                by = py + Math.sin(b) * r;
+                ay = py + Math.sin(a) * r;
+              const bx = px - Math.cos(a) * r,
+                by = py - Math.sin(a) * r;
               vertex(ax, ay, pz, 1, 1);
               vertex(bx, by, pz, 1, 1);
               vertex(ax, ay, pz + trunk, 1, 1);
@@ -350,21 +333,24 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
         `#version 300 es
         precision highp float;
         in vec3 a_position;in float a_shade;in float a_trunk;in float a_tint;
-        uniform mat4 u_matrix;out float v_shade;out float v_trunk;out float v_tint;out float v_depth;
-        void main(){gl_Position=u_matrix*vec4(a_position,1.0);v_shade=a_shade;v_trunk=a_trunk;v_tint=a_tint;v_depth=gl_Position.w;}`,
+        uniform mat4 u_matrix;out float v_shade;out float v_trunk;out float v_tint;out float v_depth;out vec3 v_position;
+        void main(){gl_Position=u_matrix*vec4(a_position,1.0);v_shade=a_shade;v_trunk=a_trunk;v_tint=a_tint;v_depth=gl_Position.w;v_position=a_position;}`,
       );
       const frag = shader(
         gl.FRAGMENT_SHADER,
         `#version 300 es
         precision highp float;
-        in float v_shade;in float v_trunk;in float v_tint;in float v_depth;
-        uniform vec3 u_color[3];uniform vec3 u_fog;uniform vec2 u_fogRange;out vec4 fragColor;
+        in float v_shade;in float v_trunk;in float v_tint;in float v_depth;in vec3 v_position;
+        uniform vec3 u_color[3];uniform vec3 u_light;out vec4 fragColor;
+        ${hazeGLSL}
         void main(){
           if(v_trunk>1.5){fragColor=vec4(vec3(.21,.3,.16)*v_shade,v_shade);return;}
           vec3 leaf=v_tint<.5?mix(u_color[0],u_color[1],v_tint*2.0):mix(u_color[1],u_color[2],(v_tint-.5)*2.0);
-          vec3 c=mix(leaf,vec3(.4,.35,.24),v_trunk)*v_shade;
-          float haze=smoothstep(u_fogRange.x,u_fogRange.y,v_depth)*.42;
-          fragColor=vec4(mix(c,u_fog,haze),1.0);
+          vec3 n=normalize(cross(dFdx(v_position), dFdy(v_position)));
+          if(!gl_FrontFacing) n=-n;
+          float light=.65+.35*max(0.,dot(n,normalize(u_light)));
+          vec3 c=mix(leaf,vec3(.4,.35,.24),v_trunk)*light;
+          fragColor=vec4(atmosphere(c,v_depth),1.0);
         }`,
       );
       program = gl.createProgram()!;
@@ -379,8 +365,7 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
         );
       matrixUniform = gl.getUniformLocation(program, "u_matrix");
       colorUniform = gl.getUniformLocation(program, "u_color[0]");
-      fogUniform = gl.getUniformLocation(program, "u_fog");
-      fogRangeUniform = gl.getUniformLocation(program, "u_fogRange");
+
       buffer = gl.createBuffer()!;
       vao = gl.createVertexArray()!;
       const previous = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
@@ -424,17 +409,13 @@ export function forestLayer(settings: () => Settings): CustomLayerInterface {
           ? [0.18, 0.32, 0.25, 0.29, 0.43, 0.28, 0.43, 0.49, 0.3]
           : s.theme === "sunset"
             ? [0.34, 0.46, 0.29, 0.58, 0.63, 0.35, 0.76, 0.75, 0.49]
-            : [0.28, 0.43, 0.31, 0.49, 0.61, 0.34, 0.7, 0.76, 0.47],
+            : [0.29, 0.43, 0.34, 0.46, 0.57, 0.39, 0.61, 0.67, 0.47],
       );
+      applyAtmosphere(gl, program, s.theme, args.farZ);
       gl.uniform3fv(
-        fogUniform,
-        s.theme === "night"
-          ? [0.07, 0.12, 0.16]
-          : s.theme === "sunset"
-            ? [0.92, 0.77, 0.68]
-            : [0.88, 0.91, 0.87],
+        gl.getUniformLocation(program, "u_light"),
+        lightDirection(s.theme),
       );
-      gl.uniform2f(fogRangeUniform, args.farZ * 0.16, args.farZ * 0.85);
       const previous = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
       gl.bindVertexArray(vao);
       gl.enable(gl.DEPTH_TEST);

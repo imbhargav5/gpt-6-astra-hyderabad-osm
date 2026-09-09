@@ -1,3 +1,4 @@
+import { lightDirection, hazeGLSL, applyAtmosphere } from "./environment";
 import {
   MercatorCoordinate,
   type CustomLayerInterface,
@@ -347,15 +348,16 @@ export function buddhaLayer(settings: () => Settings): CustomLayerInterface {
         precision highp float;
         in vec3 a_position;in vec3 a_normal;in float a_tint;
         uniform mat4 u_matrix;uniform float u_scale;uniform float u_ground;
-        out vec3 v_normal;out float v_tint;
-        void main(){vec3 p=a_position*u_scale;p.z+=u_ground;gl_Position=u_matrix*vec4(p,1.);v_normal=a_normal;v_tint=a_tint;}`,
+        out vec3 v_normal;out float v_tint;out float v_depth;
+        void main(){vec3 p=a_position*u_scale;p.z+=u_ground;gl_Position=u_matrix*vec4(p,1.);v_normal=a_normal;v_tint=a_tint;v_depth=gl_Position.w;}`,
       );
       const fragment = compile(
         gl.FRAGMENT_SHADER,
         `#version 300 es
         precision highp float;
-        in vec3 v_normal;in float v_tint;uniform vec3 u_color;uniform vec3 u_light;out vec4 fragColor;
-        void main(){float diffuse=max(0.,dot(normalize(v_normal),normalize(u_light)));float shade=.58+.42*diffuse;fragColor=vec4(u_color*shade*v_tint,1.);}`,
+        in vec3 v_normal;in float v_tint;in float v_depth;uniform vec3 u_color;uniform vec3 u_light;out vec4 fragColor;
+        ${hazeGLSL}
+        void main(){float diffuse=max(0.,dot(normalize(v_normal),normalize(u_light)));float shade=.58+.42*diffuse;fragColor=vec4(atmosphere(u_color*shade*v_tint,v_depth),1.);}`,
       );
       program = gl.createProgram()!;
       gl.attachShader(program, vertex);
@@ -423,8 +425,9 @@ export function buddhaLayer(settings: () => Settings): CustomLayerInterface {
       );
       gl.uniform3fv(
         gl.getUniformLocation(program, "u_light"),
-        s.theme === "sunset" ? [-1, 0.6, 0.7] : [-0.5, 0.8, 1.2],
+        lightDirection(s.theme),
       );
+      applyAtmosphere(gl, program, s.theme, args.farZ);
       const previous = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
       gl.bindVertexArray(vao);
       gl.enable(gl.DEPTH_TEST);

@@ -1,25 +1,26 @@
+import { environment } from "./environment";
 import { CITY_BOUNDS } from "./city-slab";
 import type { ExpressionSpecification, StyleSpecification } from "maplibre-gl";
 export type Theme = "day" | "sunset" | "night";
 export const palettes = {
   day: {
-    ground: "#e8e5d9",
-    land: "#deddd0",
-    park: "#c4d39e",
-    water: "#42b4cd",
-    road: "#faf7e9",
-    highway: "#d3b785",
-    building: "#d3cebb",
-    tall: "#93a48c",
+    ground: "#e7e1d3",
+    land: "#d8d5c6",
+    park: "#b9c7a3",
+    water: "#6aabae",
+    road: "#f4eee1",
+    highway: "#c6aa83",
+    building: "#d5cbb9",
+    tall: "#9aaeb0",
     text: "#4d6059",
     halo: "#f5f2e8",
-    sky: "#e0e9e4",
+    sky: "#dce7e5",
   },
   sunset: {
     ground: "#ddc3aa",
     land: "#d2b69e",
-    park: "#cad09b",
-    water: "#55abbc",
+    park: "#b7be98",
+    water: "#7aaba7",
     road: "#f9debd",
     highway: "#d69766",
     building: "#e5c4a0",
@@ -32,16 +33,41 @@ export const palettes = {
     ground: "#162729",
     land: "#1b3031",
     park: "#315839",
-    water: "#12475b",
+    water: "#234955",
     road: "#59716b",
     highway: "#cbb37b",
     building: "#41615c",
     tall: "#7d9d87",
     text: "#c0cdc3",
     halo: "#172a2b",
-    sky: "#111e29",
+    sky: "#172832",
   },
 };
+export function buildingMaterial(theme: Theme): ExpressionSpecification {
+  const c =
+    theme === "night"
+      ? ["#536763", "#596969", "#716e65", "#65808a", "#64706b"]
+      : theme === "sunset"
+        ? ["#d8c1a5", "#c9c0b4", "#c59a80", "#a1b6b5", "#ccc4b1"]
+        : ["#ded2bc", "#c9cdc7", "#c3a18b", "#9ab2b6", "#d1cbbb"];
+  const variant: ExpressionSpecification = [
+    "%",
+    ["abs", ["to-number", ["id"], ["get", "render_height"], 9]],
+    5,
+  ];
+  return [
+    "case",
+    [
+      "in",
+      ["coalesce", ["get", "material"], ["get", "building:material"], ""],
+      ["literal", ["brick", "terracotta"]],
+    ],
+    c[2],
+    [">=", ["coalesce", ["get", "render_height"], 9], 65],
+    c[3],
+    ["match", variant, 0, c[0], 1, c[1], 2, c[2], 3, c[4], c[0]],
+  ];
+}
 export function buildingHeight(multiplier: number): ExpressionSpecification {
   return [
     "*",
@@ -51,6 +77,7 @@ export function buildingHeight(multiplier: number): ExpressionSpecification {
 }
 export function createStyle(theme: Theme, height: number): StyleSpecification {
   const c = palettes[theme];
+  const lighting = environment[theme];
   return {
     version: 8,
     glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
@@ -86,17 +113,17 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
     sky: {
       "sky-color": c.sky,
       "horizon-color": c.ground,
-      "fog-color": c.sky,
+      "fog-color": lighting.fog,
       "sky-horizon-blend": 0.6,
       "horizon-fog-blend": 0.7,
-      "fog-ground-blend": 0.35,
+      "fog-ground-blend": 0.22,
       "atmosphere-blend": 0,
     },
     light: {
-      anchor: "viewport",
-      color: theme === "sunset" ? "#ffdbad" : "#ffffff",
-      intensity: theme === "night" ? 0.3 : 0.45,
-      position: [1.5, theme === "sunset" ? 110 : 210, 40],
+      anchor: "map",
+      color: lighting.color,
+      intensity: lighting.intensity,
+      position: [1.5, lighting.azimuth, lighting.polar],
     },
     layers: [
       {
@@ -109,7 +136,38 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
         type: "fill",
         source: "osm",
         "source-layer": "landuse",
-        paint: { "fill-color": c.land, "fill-opacity": 0.5 },
+        paint: {
+          "fill-color": [
+            "match",
+            ["get", "class"],
+            "residential",
+            c.land,
+            "industrial",
+            theme === "night" ? "#273336" : "#cdc9be",
+            "commercial",
+            theme === "night" ? "#273836" : "#ddd6c7",
+            "cemetery",
+            c.park,
+            c.land,
+          ],
+          "fill-opacity": 0.65,
+        },
+      },
+      {
+        id: "rock-ground",
+        type: "fill",
+        source: "osm",
+        "source-layer": "landcover",
+        filter: ["in", "class", "rock", "bare_rock", "sand"],
+        paint: {
+          "fill-color":
+            theme === "night"
+              ? "#303738"
+              : theme === "sunset"
+                ? "#c5ae98"
+                : "#c9beac",
+          "fill-opacity": 0.7,
+        },
       },
       {
         id: "green",
@@ -178,18 +236,20 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
         source: "osm",
         "source-layer": "landcover",
         filter: ["in", "class", "wood", "grass", "scrub"],
-        paint: { "fill-pattern": "land-grain", "fill-opacity": 0.6 },
+        paint: { "fill-pattern": "land-grain", "fill-opacity": 0.22 },
       },
       {
         id: "hillshade",
         type: "hillshade",
         source: "hillshade",
         paint: {
-          "hillshade-method": "multidirectional",
-          "hillshade-exaggeration": 0.8,
-          "hillshade-accent-color": theme === "night" ? "#365346" : "#879c69",
-          "hillshade-shadow-color": theme === "night" ? "#081c25" : "#647957",
-          "hillshade-highlight-color": theme === "night" ? c.ground : "#edf0d5",
+          "hillshade-method": "standard",
+          "hillshade-illumination-anchor": "map",
+          "hillshade-illumination-direction": lighting.azimuth,
+          "hillshade-exaggeration": 0.38,
+          "hillshade-accent-color": theme === "night" ? "#365346" : "#ac9f88",
+          "hillshade-shadow-color": theme === "night" ? "#081c25" : "#7a827d",
+          "hillshade-highlight-color": theme === "night" ? c.ground : "#f4ecda",
         },
       },
       {
@@ -198,6 +258,18 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
         source: "osm",
         "source-layer": "water",
         paint: { "fill-color": c.water },
+      },
+      {
+        id: "shoreline",
+        type: "line",
+        source: "osm",
+        "source-layer": "water",
+        minzoom: 12,
+        paint: {
+          "line-color": theme === "night" ? "#507173" : "#a8c3b8",
+          "line-opacity": 0.65,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.4, 17, 1.8],
+        },
       },
       {
         id: "waterways",
@@ -284,24 +356,15 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
         minzoom: 13,
         filter: ["!=", ["get", "hide_3d"], true],
         paint: {
-          "fill-extrusion-color": [
-            "interpolate",
-            ["linear"],
-            ["coalesce", ["get", "render_height"], 9],
-            0,
-            c.building,
-            40,
-            c.building,
-            100,
-            c.tall,
-          ],
+          "fill-extrusion-color": buildingMaterial(theme),
+          "fill-extrusion-vertical-gradient": true,
           "fill-extrusion-height": buildingHeight(height),
           "fill-extrusion-base": [
             "*",
             ["coalesce", ["get", "render_min_height"], 0],
             height,
           ],
-          "fill-extrusion-opacity": 0.95,
+          "fill-extrusion-opacity": 1,
         },
       },
       {
@@ -377,7 +440,7 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
 export const layerGroups = {
   buildings: ["buildings"],
   roads: ["roads", "highways", "rail", "runways", "road-labels"],
-  water: ["water", "waterways", "water-labels"],
+  water: ["water", "shoreline", "waterways", "water-labels"],
   parks: ["green", "parks", "woodland-ground", "land-grain"],
   labels: ["place-labels"],
 };

@@ -34,15 +34,31 @@ import type { Theme } from "./map-style";
 export function detailColors(theme: Theme): ExpressionSpecification {
   const colors =
     theme === "night"
-      ? ["#637c71", "#87998a", "#bcaa73", "#759d9f", "#324e4e", "#b8bba1"]
+      ? ["#617671", "#94a39b", "#354d53", "#75949c", "#445b5d", "#879b9d"]
       : theme === "sunset"
-        ? ["#c4a886", "#f0d9b6", "#796b5c", "#829c9b", "#9c998c", "#d5c7a8"]
-        : ["#c5c0ab", "#eee9d7", "#7c8277", "#87a9aa", "#a4aeaa", "#cbd4c9"];
+        ? ["#cbb294", "#ebd9be", "#706d68", "#8ea9aa", "#a99e8c", "#c4bba8"]
+        : ["#cec2ad", "#ede4d2", "#6b797b", "#8eafb4", "#aaa99a", "#b7c0bc"];
   return [
     "match",
     ["get", "material"],
     "stone",
-    colors[0],
+    [
+      "match",
+      ["coalesce", ["get", "tone"], 1],
+      0,
+      theme === "night"
+        ? "#657a77"
+        : theme === "sunset"
+          ? "#c4aa92"
+          : "#c8bba6",
+      2,
+      theme === "night"
+        ? "#6b7c73"
+        : theme === "sunset"
+          ? "#d1b99d"
+          : "#d5c9b6",
+      colors[0],
+    ],
     "trim",
     colors[1],
     "recess",

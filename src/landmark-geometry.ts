@@ -38,7 +38,14 @@ type Building = Feature<Polygon | MultiPolygon>;
 type Material = "stone" | "trim" | "recess" | "glass" | "roof" | "metal";
 type Detail = Feature<
   Polygon,
-  { base: number; top: number; material: Material; fine: number; site: string }
+  {
+    base: number;
+    top: number;
+    material: Material;
+    fine: number;
+    site: string;
+    tone?: number;
+  }
 >;
 const METERS_LAT = 111320;
 const MAX_BUILDINGS = 36;
@@ -205,7 +212,17 @@ export function buildLandmarkDetails(
       if (features.length >= MAX_DETAILS || top <= z) return;
       features.push({
         type: "Feature",
-        properties: { base: z, top, material, fine, site },
+        properties: {
+          base: z,
+          top,
+          material,
+          fine,
+          site,
+          tone:
+            Math.abs(
+              Math.round(anchor[0] * 1e5) + Math.round(anchor[1] * 1e5),
+            ) % 3,
+        },
         geometry: { type: "Polygon", coordinates: coordinates.map(geo) },
       });
     };
@@ -301,7 +318,7 @@ export function buildLandmarkDetails(
             strip(
               center - width / 2,
               center + width / 2,
-              0.27,
+              0.16,
               sill,
               modern ? top : top - width * 0.25,
               modern ? "glass" : "recess",
@@ -316,7 +333,7 @@ export function buildLandmarkDetails(
                 strip(
                   center - half,
                   center + half,
-                  0.27,
+                  0.16,
                   z,
                   z + width * 0.05 + 0.01,
                   "recess",

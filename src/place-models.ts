@@ -1,4 +1,10 @@
 import {
+  environment,
+  lightDirection,
+  hazeGLSL,
+  applyAtmosphere,
+} from "./environment";
+import {
   NavigationFocusStore,
   LatestQueue,
   detailPriority,
@@ -196,13 +202,17 @@ export function placeModelsLayer(
       const v = shader(
         gl.VERTEX_SHADER,
         `#version 300 es
-      precision highp float;in vec3 a_pos;in vec3 a_normal;in vec3 a_color;uniform mat4 u_matrix;uniform float u_height;uniform float u_ground;out vec3 v_normal;out vec3 v_color;
-      void main(){vec3 p=a_pos;p.z=p.z*u_height+u_ground;gl_Position=u_matrix*vec4(p,1.);v_normal=normalize(vec3(a_normal.xy,a_normal.z/u_height));v_color=a_color;}`,
+      precision highp float;in vec3 a_pos;in vec3 a_normal;in vec3 a_color;uniform mat4 u_matrix;uniform float u_height;uniform float u_ground;out vec3 v_normal;out vec3 v_color;out float v_depth;
+      void main(){vec3 p=a_pos;p.z=p.z*u_height+u_ground;gl_Position=u_matrix*vec4(p,1.);v_normal=normalize(vec3(a_normal.xy,a_normal.z/u_height));v_color=a_color;v_depth=gl_Position.w;}`,
       );
       const f = shader(
         gl.FRAGMENT_SHADER,
         `#version 300 es
-      precision highp float;in vec3 v_normal;in vec3 v_color;uniform vec3 u_tint;uniform vec3 u_light;out vec4 fragColor;void main(){float diffuse=max(0.,dot(normalize(v_normal),normalize(u_light)));fragColor=vec4(v_color*u_tint*(.57+.43*diffuse),1.);}`,
+      precision highp float;in vec3 v_normal;in vec3 v_color;in float v_depth;uniform vec3 u_tint;uniform vec3 u_light;out vec4 fragColor;
+      ${hazeGLSL}
+      void main(){float diffuse=max(0.,dot(normalize(v_normal),normalize(u_light)));
+      vec3 shade=mix(vec3(.60,.67,.72),u_tint,diffuse);
+      fragColor=vec4(atmosphere(v_color*shade,v_depth),1.);}`,
       );
       program = gl.createProgram()!;
       gl.attachShader(program, v);
@@ -228,16 +238,9 @@ export function placeModelsLayer(
       gl.uniform1f(gl.getUniformLocation(program, "u_height"), s.height);
       gl.uniform3fv(
         gl.getUniformLocation(program, "u_tint"),
-        s.theme === "night"
-          ? [0.64, 0.79, 0.78]
-          : s.theme === "sunset"
-            ? [1, 0.9, 0.78]
-            : [1, 1, 1],
+        environment[s.theme].tint,
       );
-      gl.uniform3fv(
-        gl.getUniformLocation(program, "u_light"),
-        s.theme === "sunset" ? [-1, 0.5, 0.8] : [-0.6, 0.8, 1.2],
-      );
+      applyAtmosphere(gl, program, s.theme, args.farZ);
       const previous = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
       gl.bindVertexArray(vao);
       gl.enable(gl.DEPTH_TEST);
@@ -249,6 +252,10 @@ export function placeModelsLayer(
         if (!active.has(model.id)) continue;
         const entry = cache.get(model.id);
         if (!entry) continue;
+        gl.uniform3fv(
+          gl.getUniformLocation(program, "u_light"),
+          lightDirection(s.theme, model.angle),
+        );
         gl.bindBuffer(gl.ARRAY_BUFFER, entry.buffer);
         for (const [name, offset] of [
           ["a_pos", 0],
