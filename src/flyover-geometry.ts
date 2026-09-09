@@ -1,4 +1,5 @@
 import type { FeatureCollection, Polygon, Position } from "geojson";
+import { buildDeckProfiles, deckGround } from "./flyover-profile";
 import { PlaceMesh, type V3, type Color } from "./place-mesh";
 export const meshOrigin: [number, number] = [78.43, 17.4];
 // MapLibre's normalized Web Mercator projection, kept worker-safe without loading the renderer.
@@ -24,10 +25,11 @@ const materials: Record<string, Color> = {
 };
 export function createFlyoverMesh(
   data: FeatureCollection<Polygon>,
-  height: number,
+  _height: number,
   elevation: (p: Position) => number | null,
   center: Position,
   radius = 4500,
+  profiles = buildDeckProfiles(data, elevation),
 ) {
   const mesh = new PlaceMesh();
   for (const f of data.features) {
@@ -41,7 +43,19 @@ export function createFlyoverMesh(
       )
     )
       continue;
-    const grounds = ring.map(elevation);
+    const props = f.properties!;
+    // Legacy polygons use one shared centre elevation, never independent corner heights.
+    const centre = ring.reduce(
+      (v, p) => [v[0] + p[0] / 4, v[1] + p[1] / 4],
+      [0, 0],
+    );
+    const fallback = props.a ? null : elevation(centre);
+    const grounds = ring.map((p) =>
+      props.a ? deckGround(p, props.a, props.b, profiles) : fallback,
+    );
+    const footings =
+      props.part === "pier" && props.base === 0 ? ring.map(elevation) : grounds;
+    if (footings.some((v) => v === null)) continue;
     if (grounds.some((v) => v === null)) continue;
     const points = ring.map((p) => {
       const c = projectMercator(p);
@@ -55,20 +69,10 @@ export function createFlyoverMesh(
     );
     const order = area > 0 ? [0, 1, 2, 3] : [3, 2, 1, 0];
     const top = order.map(
-      (i) =>
-        [
-          points[i][0],
-          points[i][1],
-          grounds[i]! + f.properties!.top * Math.max(1, height),
-        ] as V3,
+      (i) => [points[i][0], points[i][1], grounds[i]! + props.top] as V3,
     );
     const bottom = order.map(
-      (i) =>
-        [
-          points[i][0],
-          points[i][1],
-          grounds[i]! + f.properties!.base * Math.max(1, height),
-        ] as V3,
+      (i) => [points[i][0], points[i][1], footings[i]! + props.base] as V3,
     );
     const color = materials[f.properties!.part] ?? materials.deck;
     mesh.quad(top[0], top[1], top[2], top[3], color);

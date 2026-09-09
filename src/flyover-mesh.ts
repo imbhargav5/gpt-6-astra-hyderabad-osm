@@ -4,6 +4,7 @@ import {
   hazeGLSL,
   applyAtmosphere,
 } from "./environment";
+import { buildDeckProfiles } from "./flyover-profile";
 import { GeometryWorker } from "./geometry-worker-client";
 import { ResourceCache, streamBounds } from "./spatial-stream";
 import {
@@ -98,6 +99,28 @@ export function flyoverMeshLayer(
           chunks.set(key, { type: "FeatureCollection", features: [] });
         chunks.get(key)!.features.push(feature);
       }
+      // Build once from the whole route network before chunk dispatch, so chunk
+      // borders and separately generated barriers use exactly the same grade.
+      const centreElevations = new globalThis.Map<string, number | null>();
+      let count = 0;
+      for (const f of state.data.features) {
+        if (f.properties!.part !== "deck") continue;
+        for (const p of [f.properties!.a, f.properties!.b]) {
+          if (!p || centreElevations.has(p.join(","))) continue;
+          centreElevations.set(
+            p.join(","),
+            state.settings.terrainOn ? map.queryTerrainElevation(p) : 0,
+          );
+          if (++count % 500 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            if (removed || revision !== current) return;
+          }
+        }
+      }
+      const profiles = buildDeckProfiles(
+        state.data,
+        (p) => centreElevations.get(p.join(",")) ?? null,
+      );
       active = new Set(chunks.keys());
       for (const [key, data] of chunks) {
         if (removed || revision !== current) return;
@@ -118,8 +141,16 @@ export function flyoverMeshLayer(
               if (removed || revision !== current) return;
             }
           }
+        const usedProfiles = new globalThis.Map<string, number>();
+        for (const f of data.features)
+          for (const p of [f.properties!.a, f.properties!.b]) {
+            if (!p) continue;
+            const key = `${p[0].toFixed(6)},${p[1].toFixed(6)}`;
+            const z = profiles.get(key);
+            if (z !== undefined) usedProfiles.set(key, z);
+          }
         const signature = JSON.stringify([
-          state.settings.height,
+          [...usedProfiles],
           data,
           [...elevations],
         ]);
@@ -127,6 +158,7 @@ export function flyoverMeshLayer(
         try {
           const mesh = await worker.run<Float32Array>({
             kind: "flyover",
+            profiles: [...usedProfiles],
             data,
             height: state.settings.height,
             elevations: [...elevations],

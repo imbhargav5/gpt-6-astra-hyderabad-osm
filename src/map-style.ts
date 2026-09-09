@@ -90,9 +90,7 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
       terrain: {
         type: "raster-dem",
         bounds: CITY_BOUNDS,
-        tiles: [
-          "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
-        ],
+        tiles: ["atlas-terrain://{z}/{x}/{y}.png"],
         encoding: "terrarium",
         tileSize: 256,
         maxzoom: 14,
@@ -102,9 +100,7 @@ export function createStyle(theme: Theme, height: number): StyleSpecification {
       hillshade: {
         type: "raster-dem",
         bounds: CITY_BOUNDS,
-        tiles: [
-          "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
-        ],
+        tiles: ["atlas-terrain://{z}/{x}/{y}.png"],
         encoding: "terrarium",
         tileSize: 256,
         maxzoom: 14,

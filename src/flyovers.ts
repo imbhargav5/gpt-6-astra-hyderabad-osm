@@ -20,6 +20,7 @@ export function buildFlyovers(
   routes: ElevatedRoad[],
 ): FeatureCollection<Polygon> {
   const features: FeatureCollection<Polygon>["features"] = [];
+  let span: { a: Position; b: Position } | undefined;
   const add = (
     ring: Position[],
     base: number,
@@ -30,7 +31,7 @@ export function buildFlyovers(
     if (ring.length < 4 || features.length >= 60000) return;
     features.push({
       type: "Feature",
-      properties: { base, top, part, name: road.name, road: road.id },
+      properties: { base, top, part, name: road.name, road: road.id, ...span },
       geometry: { type: "Polygon", coordinates: [ring] },
     });
   };
@@ -89,6 +90,7 @@ export function buildFlyovers(
         b = p[i],
         len = Math.hypot(b[0] - a[0], b[1] - a[1]);
       if (len < 0.1) continue;
+      span = { a: geo(a), b: geo(b) };
       const ux = (b[0] - a[0]) / len,
         uy = (b[1] - a[1]) / len;
       const rect = (start: number, end: number, lo: number, hi: number) => {

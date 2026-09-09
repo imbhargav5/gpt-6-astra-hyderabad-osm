@@ -148,6 +148,17 @@ export default function App() {
   const markers = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const [mapError, setMapError] = useState("");
+  const [loadingDismissed, setLoadingDismissed] = useState(false);
+  const loadingComplete = ready || Boolean(mapError);
+  useEffect(() => {
+    if (!loadingComplete) return;
+    // Keep the overlay mounted through its exit; errors must also reveal Retry.
+    const timer = window.setTimeout(
+      () => setLoadingDismissed(true),
+      reducedMotion() ? 0 : 800,
+    );
+    return () => window.clearTimeout(timer);
+  }, [loadingComplete]);
   const [theme, setTheme] = useState<Theme>(savedSettings.theme);
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -1006,13 +1017,22 @@ export default function App() {
           {copied ? <Check size={19} /> : <Share2 size={19} />}
         </button>
       </nav>
-      {!ready && !mapError && (
-        <div className="loading-card" role="status">
-          <span className="loading-orbit" />
-          <span>
-            Bringing Hyderabad into view
-            <small>Loading open map data & terrain…</small>
-          </span>
+      {!loadingDismissed && (
+        <div
+          className={`loading-overlay${loadingComplete ? " is-leaving" : ""}`}
+          role="status"
+          aria-live="polite"
+          aria-hidden={loadingComplete}
+        >
+          <div className="loading-copy">
+            <span className="loading-eyebrow">Hyderabad Atlas</span>
+            <h1 className="loading-title">
+              Bringing Hyderabad
+              <br />
+              into view
+            </h1>
+            <p>Loading open map data &amp; terrain…</p>
+          </div>
         </div>
       )}
       {mapError && (

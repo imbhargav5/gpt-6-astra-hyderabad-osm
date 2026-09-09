@@ -16,6 +16,7 @@ self.onmessage = ({ data: { sequence, job } }) => {
         (p) => elevations.get(p.join(",")) ?? null,
         job.center,
         Infinity,
+        new Map(job.profiles),
       );
     } else throw new Error("Unknown geometry job");
     if (result instanceof Float32Array)

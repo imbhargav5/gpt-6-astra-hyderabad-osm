@@ -32,7 +32,7 @@ describe("terrain-aware flyover mesh", () => {
     expect(normals.some((n) => n > 0.99)).toBe(true);
     expect(normals.some((n) => n < -0.99)).toBe(true);
   });
-  it("maintains deck clearance on sloping terrain rather than anchoring the whole polygon at its centroid", () => {
+  it("keeps a legacy deck planar instead of twisting each corner with terrain", () => {
     const mesh = createFlyoverMesh(
       deck,
       2,
@@ -41,8 +41,8 @@ describe("terrain-aware flyover mesh", () => {
     );
     const z = [];
     for (let i = 0; i < mesh.length; i += 9) z.push(mesh[i + 2]);
-    expect(Math.min(...z)).toBeCloseTo(112);
-    expect(Math.max(...z)).toBeCloseTo(124);
+    expect(Math.min(...z)).toBeCloseTo(111);
+    expect(Math.max(...z)).toBeCloseTo(112);
     expect(mesh.every(Number.isFinite)).toBe(true);
   });
   it("waits for terrain and culls geometry outside the nearby view", () => {
